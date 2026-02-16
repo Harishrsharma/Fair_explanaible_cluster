@@ -4,3 +4,4 @@ scikit-learn
 matplotlib
 seaborn
 scipy
+scikit-learn-extra
