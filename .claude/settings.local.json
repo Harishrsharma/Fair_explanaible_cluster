@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(head -5 data/*.csv)",
+      "Bash(python3:*)",
+      "Bash(python:*)"
+    ]
+  }
+}

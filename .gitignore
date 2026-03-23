@@ -1,1 +1,10 @@
+.myvirtual/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+myvirtual/
 .myvirtual/
+*.egg-info/
+dist/
+build/
