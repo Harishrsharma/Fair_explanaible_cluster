@@ -13,6 +13,7 @@
 # the paper above, as implemented in the thesis notebook
 # (fair_explainable_clustering_v2.ipynb).
 
+import math
 import numpy as np
 from scipy.spatial.distance import cdist
 from src.config import QUADTREE_MAX_LEVELS, QUADTREE_RANDOM_SHIFT, QUADTREE_EPSILON
@@ -93,6 +94,9 @@ def build_quadtree(dataset, max_levels=0, random_shift=True, epsilon=QUADTREE_EP
     max_levels   : int – 0 means fully recursive (no depth limit)
     random_shift : bool – random translation of bounding box to reduce
                    worst-case behaviour (Theorem 3.2, Chierichetti et al.)
+                   Implemented as a toroidal (modular) shift of the data
+                   within the bounding box so the grid origin is randomised
+                   without displacing data outside the cell bounds.
     epsilon      : float – minimum cell width before stopping
 
     Returns
@@ -103,16 +107,25 @@ def build_quadtree(dataset, max_levels=0, random_shift=True, epsilon=QUADTREE_EP
     lower = dataset.min(axis=0).copy()
     upper = dataset.max(axis=0).copy()
 
-    # Pad bounding box slightly
     widths = upper - lower
+    # Avoid zero-width dimensions
+    widths = np.where(widths < epsilon, epsilon, widths)
     lower -= 0.01 * widths
     upper += 0.01 * widths
 
+    # Recompute widths after padding
+    cell_width = upper - lower
+
     if random_shift:
         rng = np.random.default_rng(42)
-        shift = rng.uniform(0, upper - lower)
-        lower += shift
-        upper += shift
+        shift = rng.uniform(np.zeros(d), cell_width)
+        # ── Toroidal (modular) shift ──────────────────────────────────────────
+        # Shift the data WITHIN the bounding box using modular arithmetic.
+        # This randomises the grid origin (Theorem 3.2) without displacing
+        # data outside [lower, upper], fixing the earlier bug where adding
+        # 'shift' to both lower and upper moved the mid-point above all data.
+        # Reference: Chierichetti et al. (2017) §3 "A Randomized Algorithm"
+        dataset = lower + (dataset - lower + shift) % cell_width
 
     return _build_quadtree_recursive(
         dataset, list(range(n)), lower, upper, 0, max_levels, epsilon
@@ -247,6 +260,63 @@ def twagner_fairlet_decomposition(dataset, sensitive, p=1, q=2):
         centers.append(idx)
 
     return fairlets, centers
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Auto p/q selection from data distribution
+# ─────────────────────────────────────────────────────────────────────────────
+
+def compute_pq(sensitive):
+    """
+    Derive (p, q) balance parameters automatically from the actual group
+    ratio in 'sensitive'.
+
+    Method
+    ------
+    We use math.ceil(n_maj / n_min) for q so that the threshold p/q is
+    ALWAYS strictly achievable given the real data distribution.
+
+    Why ceil and not round?
+    -----------------------
+    Example – Adult dataset: Male=67%, Female=33% → n_maj/n_min ≈ 2.03
+      • round(2.03) = 2  →  threshold = 1/2 = 0.500
+        The actual max achievable balance is 0.493  (<0.500) because the
+        ratio is not exactly 2:1.  Every cluster violates → violation_rate=1.
+      • ceil(2.03)  = 3  →  threshold = 1/3 = 0.333
+        Leftover singletons push cluster balance to ~0.44  (>0.333).
+        All clusters pass  → violation_rate=0.  ✓
+
+    round() can produce a threshold that is marginally above the real ratio,
+    making it impossible to satisfy even with perfect fairlets.
+    ceil() guarantees the threshold is always reachable.
+
+    Reference: Chierichetti et al. (2017) Definition 2.1.
+
+    Parameters
+    ----------
+    sensitive : ndarray (n,) – binary (0/1)
+
+    Returns
+    -------
+    p, q : int  where p/q ≤ actual minority/majority ratio  (always achievable)
+    """
+    n1 = int(sensitive.sum())          # group-1 count  (red)
+    n0 = len(sensitive) - n1           # group-0 count  (blue)
+
+    if n0 == 0 or n1 == 0:
+        return 1, 1                     # degenerate: single group
+
+    n_min = min(n0, n1)
+    n_maj = max(n0, n1)
+
+    # ceil ensures p/q ≤ n_min/n_maj  (threshold is always achievable)
+    if n1 >= n0:                        # reds are majority → q counts reds
+        q = max(1, math.ceil(n1 / n0))
+        p = 1
+    else:                               # blues are majority → p counts blues
+        p = max(1, math.ceil(n0 / n1))
+        q = 1
+    return p, q
 
 
 # ─────────────────────────────────────────────────────────────────────────────

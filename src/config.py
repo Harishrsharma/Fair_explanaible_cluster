@@ -2,19 +2,28 @@
 # Central configuration for all datasets and experiment parameters
 
 RANDOM_STATE = 42
-K_CLUSTERS = 5
 TREE_MAX_DEPTH = 4
 TEST_SIZE = 0.3
 
-# Fairness balance parameters (p/q ratio)
-# Balance condition: min(r/b, b/r) >= p/q
-# p=1, q=2 means at least 1 minority for every 2 majority members per cluster
-FAIR_P = 1
-FAIR_Q = 2
+# ── Elbow-method k search range ───────────────────────────────────────────────
+# find_optimal_k() tries every k in [K_RANGE[0], K_RANGE[1]) and picks the
+# elbow. Override per-dataset with DATASET_K_OVERRIDE (None = auto).
+K_RANGE = (2, 11)
+
+# Per-dataset k override: set to an integer to skip elbow, None to auto-detect
+DATASET_K_OVERRIDE = {
+    "bank":   None,   # auto
+    "adult":  None,   # auto
+    "compas": None,   # auto
+    "german": None,   # auto
+}
 
 # Quadtree parameters (Twagner method)
-QUADTREE_MAX_LEVELS = 0        # 0 = full recursive split
-QUADTREE_RANDOM_SHIFT = True   # reduces worst-case quadtree behavior
+QUADTREE_MAX_LEVELS  = 0       # 0 = full recursive split
+QUADTREE_RANDOM_SHIFT = True   # toroidal shift – randomises grid origin
+                               # (Theorem 3.2, Chierichetti et al. 2017)
+                               # Fixed: now uses modular arithmetic so data
+                               # stays within the bounding box at all times.
 QUADTREE_EPSILON = 1e-4        # minimum cell size threshold
 
 # Sample sizes per dataset (None = use full dataset)

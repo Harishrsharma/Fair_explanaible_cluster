@@ -5,6 +5,7 @@
 #   python main.py                      # run all 4 datasets
 #   python main.py --dataset bank       # run one dataset
 #   python main.py --dataset bank adult # run subset
+#   python main.py --no-save            # skip saving results to disk
 
 import argparse
 from src.pipeline import run_all_datasets, run_dataset

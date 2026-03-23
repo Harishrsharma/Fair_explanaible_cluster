@@ -114,6 +114,77 @@ def k_medians(X, k, max_iter=100, random_state=42):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Elbow method: automatic k selection
+# ─────────────────────────────────────────────────────────────────────────────
+
+def find_optimal_k(X, k_range=(2, 11), random_state=42):
+    """
+    Select optimal number of clusters via the elbow method on KMeans inertia.
+
+    Algorithm
+    ---------
+    1. Fit KMeans for each k in k_range on a subsample (≤5 000 points) for speed.
+    2. Compute the normalised second derivative of the inertia curve.
+    3. Return the k at the sharpest elbow (maximum second-derivative, i.e.,
+       where the rate of improvement slows most abruptly).
+
+    Normalisation before second-derivative ensures the elbow detection is
+    scale-independent (works whether inertia is 1e3 or 1e8).
+
+    Parameters
+    ----------
+    X         : ndarray (n, d)
+    k_range   : tuple (k_min, k_max_exclusive)  – range of k values to try
+    random_state : int
+
+    Returns
+    -------
+    optimal_k : int
+    inertias  : list of float – inertia for each k tried (useful for plotting)
+    ks        : list of int   – k values tried
+    """
+    ks = list(range(k_range[0], k_range[1]))
+
+    # Subsample large datasets so elbow search stays fast
+    X_fit = X
+    if X.shape[0] > 5000:
+        rng = np.random.default_rng(random_state)
+        idx = rng.choice(X.shape[0], 5000, replace=False)
+        X_fit = X[idx]
+
+    inertias = []
+    for k in ks:
+        km = KMeans(n_clusters=k, random_state=random_state, n_init=5)
+        km.fit(X_fit)
+        inertias.append(km.inertia_)
+
+    inertias_arr = np.array(inertias, dtype=float)
+
+    if len(ks) < 3:
+        return ks[0], inertias, ks   # not enough points to find elbow
+
+    # Normalise inertia to [0, 1] so scale doesn't affect elbow detection
+    span = inertias_arr[0] - inertias_arr[-1]
+    if span < 1e-10:
+        return ks[0], inertias, ks   # flat curve – default to smallest k
+    inertias_norm = (inertias_arr - inertias_arr[-1]) / span
+
+    # Second derivative: where the normalised curve bends most sharply
+    d1 = np.diff(inertias_norm)   # rate of decrease per step
+    d2 = np.diff(d1)              # rate-of-change of that rate
+
+    # argmax(d2): the index (in d2) where decrease slows most abruptly
+    # d2 has len(ks)-2 elements; d2[i] corresponds to ks[i+2]
+    elbow_idx = int(np.argmax(d2)) + 2
+    elbow_idx = min(elbow_idx, len(ks) - 1)   # safety clamp
+
+    # Never return fewer than 3 clusters (too coarse for thesis datasets)
+    optimal_k = max(3, ks[elbow_idx])
+
+    return optimal_k, inertias, ks
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Cluster on fairlet centres (used after fairlet decomposition)
 # ─────────────────────────────────────────────────────────────────────────────
 

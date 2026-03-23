@@ -6,10 +6,22 @@
 #                   → human-readable if-then rules (no sensitive attribute used)
 #   2. Exemplar   : Medoid of each cluster = representative prototype
 #
-# Reference for surrogate decision trees in clustering explainability:
+# References
+# ----------
+# Surrogate decision trees for clustering explainability:
 #   Dasgupta et al. (2020). "Explainability via Decision Trees."
 #   Moshkovitz et al. (2020). "Explainable k-Means and k-Medians Clustering."
 #   ICML 2020. https://arxiv.org/abs/2002.12538
+#
+# Exemplar / medoid concept (K-Medoids / PAM):
+#   Kaufman & Rousseeuw (1987). "Clustering by Means of Medoids."
+#   In Statistical Data Analysis Based on the L1-Norm, pp. 405-416.
+#   GitHub (scikit-learn-extra PAM): https://github.com/scikit-learn-contrib/scikit-learn-extra
+#
+# Fairlet decomposition (Twagner quadtree approach):
+#   Chierichetti et al. (2017). "Fair Clustering Through Fairlets."
+#   NeurIPS 2017. https://proceedings.neurips.cc/paper/2017/hash/978fce5bcc4501f762b2523a5f23b66c-Abstract.html
+#   GitHub (reference implementation): https://github.com/MilkaLichtblau/Multinomial_Fairlets
 
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier, export_text
@@ -89,20 +101,32 @@ def explainability_metrics(X, labels, feature_names=None, max_depth=None,
 
 def exemplar_metrics(X, labels):
     """
-    Find the medoid (most representative point) for each cluster.
-    The medoid minimises the sum of distances to all cluster members.
+    Find the medoid (most representative point) for each cluster and compute
+    exemplar-based quality metrics.
+
+    The medoid minimises the sum of L2 distances to all cluster members –
+    it is the most centrally located actual data point in each cluster.
 
     Metrics
     -------
-    avg_exemplar_coverage : average fraction of cluster members within one
-                            std-dev of their medoid (exemplar coverage)
-    medoid_indices        : list of row indices of medoids per cluster
+    avg_exemplar_coverage  : average fraction of cluster members whose
+                             distance to their medoid is <= mean + 1*std
+                             (higher = tighter, more representative exemplars)
+    min_exemplar_coverage  : worst-cluster coverage (robustness indicator)
+    avg_medoid_distance    : mean of per-cluster (mean distance from medoid to
+                             all members) – measures cluster compactness around
+                             the exemplar (lower = more compact)
+    medoid_indices         : list of row indices of medoids per cluster
 
-    Reference: Kaufman & Rousseeuw (1987) medoid concept.
+    Reference
+    ---------
+    Kaufman & Rousseeuw (1987) medoid concept.
+    scikit-learn-extra PAM: https://github.com/scikit-learn-contrib/scikit-learn-extra
     """
     unique_labels = np.unique(labels)
     medoid_indices = []
     coverages = []
+    medoid_dists = []
 
     for k in unique_labels:
         members_idx = np.where(labels == k)[0]
@@ -111,19 +135,27 @@ def exemplar_metrics(X, labels):
         if len(members) == 1:
             medoid_indices.append(int(members_idx[0]))
             coverages.append(1.0)
+            medoid_dists.append(0.0)
             continue
 
         D = cdist(members, members)
         best_local = int(np.argmin(D.sum(axis=1)))
         medoid_indices.append(int(members_idx[best_local]))
 
-        # Coverage: fraction within mean + 1*std distance to medoid
+        # Distance from medoid to every cluster member
         dists_to_medoid = D[best_local]
+
+        # Coverage: fraction within mean + 1*std distance to medoid
         threshold = dists_to_medoid.mean() + dists_to_medoid.std()
         coverage = float(np.mean(dists_to_medoid <= threshold))
         coverages.append(coverage)
 
+        # Compactness: mean distance from medoid to members
+        medoid_dists.append(float(dists_to_medoid.mean()))
+
     return {
         "avg_exemplar_coverage": float(np.mean(coverages)),
+        "min_exemplar_coverage": float(np.min(coverages)),
+        "avg_medoid_distance":   float(np.mean(medoid_dists)),
         "medoid_indices":        medoid_indices,
     }
