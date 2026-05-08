@@ -1,0 +1,150 @@
+============================================================
+  Method: kmeans_baseline
+============================================================
+|--- num__existing-credits <= 0.16
+|   |--- num__credit-amount <= 0.93
+|   |   |--- num__age <= -0.00
+|   |   |   |--- num__numner-people-provide-maintenance-for <= 0.95
+|   |   |   |   |--- class: 4
+|   |   |   |--- num__numner-people-provide-maintenance-for >  0.95
+|   |   |   |   |--- class: 3
+|   |   |--- num__age >  -0.00
+|   |   |   |--- num__numner-people-provide-maintenance-for <= 0.95
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__numner-people-provide-maintenance-for >  0.95
+|   |   |   |   |--- class: 3
+|   |--- num__credit-amount >  0.93
+|   |   |--- num__numner-people-provide-maintenance-for <= 0.95
+|   |   |   |--- num__duration <= -0.03
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__duration >  -0.03
+|   |   |   |   |--- class: 0
+|   |   |--- num__numner-people-provide-maintenance-for >  0.95
+|   |   |   |--- num__duration <= 0.75
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__duration >  0.75
+|   |   |   |   |--- class: 0
+|--- num__existing-credits >  0.16
+|   |--- num__numner-people-provide-maintenance-for <= 0.95
+|   |   |--- num__age <= 1.05
+|   |   |   |--- num__credit-amount <= 0.77
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__credit-amount >  0.77
+|   |   |   |   |--- class: 0
+|   |   |--- num__age >  1.05
+|   |   |   |--- num__existing-credits <= 1.89
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__existing-credits >  1.89
+|   |   |   |   |--- class: 2
+|   |--- num__numner-people-provide-maintenance-for >  0.95
+|   |   |--- num__credit-amount <= 1.97
+|   |   |   |--- class: 3
+|   |   |--- num__credit-amount >  1.97
+|   |   |   |--- cat__job_management/ highly qualified employee <= 0.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- cat__job_management/ highly qualified employee >  0.50
+|   |   |   |   |--- class: 0
+
+
+============================================================
+  Method: kmedians_baseline
+============================================================
+|--- cat__telephone_none <= 0.50
+|   |--- cat__credit-history_critical account <= 0.50
+|   |   |--- num__credit-amount <= 0.21
+|   |   |   |--- num__installment-rate <= 0.47
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__installment-rate >  0.47
+|   |   |   |   |--- class: 2
+|   |   |--- num__credit-amount >  0.21
+|   |   |   |--- num__existing-credits <= 0.16
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__existing-credits >  0.16
+|   |   |   |   |--- class: 0
+|   |--- cat__credit-history_critical account >  0.50
+|   |   |--- cat__employment-since_1<= < 4 years <= 0.50
+|   |   |   |--- num__age <= 3.16
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__age >  3.16
+|   |   |   |   |--- class: 0
+|   |   |--- cat__employment-since_1<= < 4 years >  0.50
+|   |   |   |--- cat__job_skilled employee / official <= 0.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- cat__job_skilled employee / official >  0.50
+|   |   |   |   |--- class: 2
+|--- cat__telephone_none >  0.50
+|   |--- num__residence-since <= 0.59
+|   |   |--- num__installment-rate <= 0.47
+|   |   |   |--- num__duration <= 1.00
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__duration >  1.00
+|   |   |   |   |--- class: 0
+|   |   |--- num__installment-rate >  0.47
+|   |   |   |--- cat__checking-account_<0 DM <= 0.50
+|   |   |   |   |--- class: 4
+|   |   |   |--- cat__checking-account_<0 DM >  0.50
+|   |   |   |   |--- class: 1
+|   |--- num__residence-since >  0.59
+|   |   |--- cat__credit-history_critical account <= 0.50
+|   |   |   |--- num__installment-rate <= -0.42
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__installment-rate >  -0.42
+|   |   |   |   |--- class: 1
+|   |   |--- cat__credit-history_critical account >  0.50
+|   |   |   |--- num__existing-credits <= 0.16
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__existing-credits >  0.16
+|   |   |   |   |--- class: 2
+
+
+============================================================
+  Method: fair_kmedians
+============================================================
+|--- num__existing-credits <= 0.16
+|   |--- num__credit-amount <= -0.27
+|   |   |--- cat__property_real estate <= 0.50
+|   |   |   |--- num__duration <= -0.12
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__duration >  -0.12
+|   |   |   |   |--- class: 2
+|   |   |--- cat__property_real estate >  0.50
+|   |   |   |--- num__credit-amount <= -0.58
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__credit-amount >  -0.58
+|   |   |   |   |--- class: 0
+|   |--- num__credit-amount >  -0.27
+|   |   |--- num__duration <= 1.38
+|   |   |   |--- cat__checking-account_no account <= 0.50
+|   |   |   |   |--- class: 2
+|   |   |   |--- cat__checking-account_no account >  0.50
+|   |   |   |   |--- class: 2
+|   |   |--- num__duration >  1.38
+|   |   |   |--- num__credit-amount <= 4.44
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__credit-amount >  4.44
+|   |   |   |   |--- class: 2
+|--- num__existing-credits >  0.16
+|   |--- num__credit-amount <= 0.77
+|   |   |--- num__age <= 1.05
+|   |   |   |--- num__duration <= -0.16
+|   |   |   |   |--- class: 4
+|   |   |   |--- num__duration >  -0.16
+|   |   |   |   |--- class: 1
+|   |   |--- num__age >  1.05
+|   |   |   |--- num__credit-amount <= -0.77
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__credit-amount >  -0.77
+|   |   |   |   |--- class: 1
+|   |--- num__credit-amount >  0.77
+|   |   |--- num__existing-credits <= 1.89
+|   |   |   |--- num__residence-since <= -1.22
+|   |   |   |   |--- class: 4
+|   |   |   |--- num__residence-since >  -1.22
+|   |   |   |   |--- class: 1
+|   |   |--- num__existing-credits >  1.89
+|   |   |   |--- num__duration <= 1.00
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__duration >  1.00
+|   |   |   |   |--- class: 2
+
+

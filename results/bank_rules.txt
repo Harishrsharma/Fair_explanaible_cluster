@@ -1,0 +1,153 @@
+============================================================
+  Method: kmeans_baseline
+============================================================
+|--- num__day <= 0.08
+|   |--- num__pdays <= 0.47
+|   |   |--- num__duration <= 1.33
+|   |   |   |--- num__balance <= 2.25
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__balance >  2.25
+|   |   |   |   |--- class: 5
+|   |   |--- num__duration >  1.33
+|   |   |   |--- num__balance <= 2.56
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__balance >  2.56
+|   |   |   |   |--- class: 5
+|   |--- num__pdays >  0.47
+|   |   |--- num__pdays <= 0.85
+|   |   |   |--- num__previous <= 0.81
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__previous >  0.81
+|   |   |   |   |--- class: 3
+|   |   |--- num__pdays >  0.85
+|   |   |   |--- num__duration <= 2.54
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__duration >  2.54
+|   |   |   |   |--- class: 1
+|--- num__day >  0.08
+|   |--- num__pdays <= 0.68
+|   |   |--- num__duration <= 1.23
+|   |   |   |--- num__campaign <= 2.14
+|   |   |   |   |--- class: 4
+|   |   |   |--- num__campaign >  2.14
+|   |   |   |   |--- class: 0
+|   |   |--- num__duration >  1.23
+|   |   |   |--- num__duration <= 1.54
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__duration >  1.54
+|   |   |   |   |--- class: 1
+|   |--- num__pdays >  0.68
+|   |   |--- num__balance <= 2.60
+|   |   |   |--- num__duration <= 1.86
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__duration >  1.86
+|   |   |   |   |--- class: 1
+|   |   |--- num__balance >  2.60
+|   |   |   |--- num__duration <= 1.10
+|   |   |   |   |--- class: 5
+|   |   |   |--- num__duration >  1.10
+|   |   |   |   |--- class: 3
+
+
+============================================================
+  Method: kmedians_baseline
+============================================================
+|--- cat__housing_no <= 0.50
+|   |--- cat__contact_unknown <= 0.50
+|   |   |--- num__pdays <= 0.01
+|   |   |   |--- cat__education_tertiary <= 0.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- cat__education_tertiary >  0.50
+|   |   |   |   |--- class: 2
+|   |   |--- num__pdays >  0.01
+|   |   |   |--- cat__education_tertiary <= 0.50
+|   |   |   |   |--- class: 5
+|   |   |   |--- cat__education_tertiary >  0.50
+|   |   |   |   |--- class: 5
+|   |--- cat__contact_unknown >  0.50
+|   |   |--- cat__month_may <= 0.50
+|   |   |   |--- cat__education_tertiary <= 0.50
+|   |   |   |   |--- class: 6
+|   |   |   |--- cat__education_tertiary >  0.50
+|   |   |   |   |--- class: 6
+|   |   |--- cat__month_may >  0.50
+|   |   |   |--- cat__education_tertiary <= 0.50
+|   |   |   |   |--- class: 3
+|   |   |   |--- cat__education_tertiary >  0.50
+|   |   |   |   |--- class: 3
+|--- cat__housing_no >  0.50
+|   |--- cat__contact_unknown <= 0.50
+|   |   |--- num__pdays <= 0.70
+|   |   |   |--- cat__marital_single <= 0.50
+|   |   |   |   |--- class: 1
+|   |   |   |--- cat__marital_single >  0.50
+|   |   |   |   |--- class: 1
+|   |   |--- num__pdays >  0.70
+|   |   |   |--- cat__education_secondary <= 0.50
+|   |   |   |   |--- class: 1
+|   |   |   |--- cat__education_secondary >  0.50
+|   |   |   |   |--- class: 5
+|   |--- cat__contact_unknown >  0.50
+|   |   |--- cat__month_may <= 0.50
+|   |   |   |--- cat__education_secondary <= 0.50
+|   |   |   |   |--- class: 1
+|   |   |   |--- cat__education_secondary >  0.50
+|   |   |   |   |--- class: 6
+|   |   |--- cat__month_may >  0.50
+|   |   |   |--- cat__education_secondary <= 0.50
+|   |   |   |   |--- class: 3
+|   |   |   |--- cat__education_secondary >  0.50
+|   |   |   |   |--- class: 3
+
+
+============================================================
+  Method: fair_kmedians
+============================================================
+|--- cat__housing_no <= 0.50
+|   |--- cat__contact_unknown <= 0.50
+|   |   |--- cat__job_management <= 0.50
+|   |   |   |--- cat__marital_single <= 0.50
+|   |   |   |   |--- class: 6
+|   |   |   |--- cat__marital_single >  0.50
+|   |   |   |   |--- class: 6
+|   |   |--- cat__job_management >  0.50
+|   |   |   |--- cat__marital_single <= 0.50
+|   |   |   |   |--- class: 1
+|   |   |   |--- cat__marital_single >  0.50
+|   |   |   |   |--- class: 5
+|   |--- cat__contact_unknown >  0.50
+|   |   |--- cat__marital_single <= 0.50
+|   |   |   |--- cat__education_tertiary <= 0.50
+|   |   |   |   |--- class: 3
+|   |   |   |--- cat__education_tertiary >  0.50
+|   |   |   |   |--- class: 5
+|   |   |--- cat__marital_single >  0.50
+|   |   |   |--- cat__education_tertiary <= 0.50
+|   |   |   |   |--- class: 4
+|   |   |   |--- cat__education_tertiary >  0.50
+|   |   |   |   |--- class: 5
+|--- cat__housing_no >  0.50
+|   |--- cat__education_tertiary <= 0.50
+|   |   |--- cat__marital_single <= 0.50
+|   |   |   |--- cat__contact_unknown <= 0.50
+|   |   |   |   |--- class: 0
+|   |   |   |--- cat__contact_unknown >  0.50
+|   |   |   |   |--- class: 0
+|   |   |--- cat__marital_single >  0.50
+|   |   |   |--- cat__month_may <= 0.50
+|   |   |   |   |--- class: 2
+|   |   |   |--- cat__month_may >  0.50
+|   |   |   |   |--- class: 2
+|   |--- cat__education_tertiary >  0.50
+|   |   |--- cat__job_management <= 0.50
+|   |   |   |--- cat__marital_single <= 0.50
+|   |   |   |   |--- class: 1
+|   |   |   |--- cat__marital_single >  0.50
+|   |   |   |   |--- class: 2
+|   |   |--- cat__job_management >  0.50
+|   |   |   |--- num__campaign <= 0.87
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__campaign >  0.87
+|   |   |   |   |--- class: 1
+
+

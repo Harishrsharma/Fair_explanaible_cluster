@@ -1,0 +1,141 @@
+============================================================
+  Method: kmeans_baseline
+============================================================
+|--- cat__age_cat_Greater than 45 <= 0.50
+|   |--- num__priors_count <= 1.32
+|   |   |--- num__juv_other_count <= 2.95
+|   |   |   |--- num__juv_misd_count <= 0.82
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__juv_misd_count >  0.82
+|   |   |   |   |--- class: 2
+|   |   |--- num__juv_other_count >  2.95
+|   |   |   |--- class: 3
+|   |--- num__priors_count >  1.32
+|   |   |--- num__juv_other_count <= 2.95
+|   |   |   |--- num__juv_misd_count <= 4.84
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__juv_misd_count >  4.84
+|   |   |   |   |--- class: 3
+|   |   |--- num__juv_other_count >  2.95
+|   |   |   |--- class: 3
+|--- cat__age_cat_Greater than 45 >  0.50
+|   |--- num__priors_count <= 1.95
+|   |   |--- num__juv_fel_count <= 0.95
+|   |   |   |--- num__priors_count <= 1.53
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__priors_count >  1.53
+|   |   |   |   |--- class: 1
+|   |   |--- num__juv_fel_count >  0.95
+|   |   |   |--- num__age <= 1.23
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__age >  1.23
+|   |   |   |   |--- class: 1
+|   |--- num__priors_count >  1.95
+|   |   |--- num__age <= 2.13
+|   |   |   |--- num__age <= 2.04
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__age >  2.04
+|   |   |   |   |--- class: 0
+|   |   |--- num__age >  2.13
+|   |   |   |--- num__priors_count <= 2.37
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__priors_count >  2.37
+|   |   |   |   |--- class: 0
+
+
+============================================================
+  Method: kmedians_baseline
+============================================================
+|--- cat__c_charge_degree_M <= 0.50
+|   |--- num__age <= -0.86
+|   |   |--- num__juv_other_count <= 2.95
+|   |   |   |--- num__juv_misd_count <= 8.86
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__juv_misd_count >  8.86
+|   |   |   |   |--- class: 2
+|   |   |--- num__juv_other_count >  2.95
+|   |   |   |--- num__juv_misd_count <= 0.82
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__juv_misd_count >  0.82
+|   |   |   |   |--- class: 2
+|   |--- num__age >  -0.86
+|   |   |--- num__juv_other_count <= 2.95
+|   |   |   |--- num__juv_other_count <= 0.83
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__juv_other_count >  0.83
+|   |   |   |   |--- class: 1
+|   |   |--- num__juv_other_count >  2.95
+|   |   |   |--- class: 2
+|--- cat__c_charge_degree_M >  0.50
+|   |--- num__age <= -0.86
+|   |   |--- num__juv_other_count <= 2.95
+|   |   |   |--- class: 3
+|   |   |--- num__juv_other_count >  2.95
+|   |   |   |--- num__juv_misd_count <= 0.82
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__juv_misd_count >  0.82
+|   |   |   |   |--- class: 2
+|   |--- num__age >  -0.86
+|   |   |--- num__juv_other_count <= 2.95
+|   |   |   |--- num__juv_misd_count <= 0.82
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__juv_misd_count >  0.82
+|   |   |   |   |--- class: 0
+|   |   |--- num__juv_other_count >  2.95
+|   |   |   |--- num__priors_count <= 0.05
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__priors_count >  0.05
+|   |   |   |   |--- class: 2
+
+
+============================================================
+  Method: fair_kmedians
+============================================================
+|--- cat__c_charge_degree_M <= 0.50
+|   |--- cat__sex_Male <= 0.50
+|   |   |--- num__priors_count <= 0.90
+|   |   |   |--- num__priors_count <= -0.37
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__priors_count >  -0.37
+|   |   |   |   |--- class: 2
+|   |   |--- num__priors_count >  0.90
+|   |   |   |--- num__juv_other_count <= 2.95
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__juv_other_count >  2.95
+|   |   |   |   |--- class: 0
+|   |--- cat__sex_Male >  0.50
+|   |   |--- num__priors_count <= 0.05
+|   |   |   |--- num__age <= 0.17
+|   |   |   |   |--- class: 0
+|   |   |   |--- num__age >  0.17
+|   |   |   |   |--- class: 1
+|   |   |--- num__priors_count >  0.05
+|   |   |   |--- num__age <= -0.60
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__age >  -0.60
+|   |   |   |   |--- class: 1
+|--- cat__c_charge_degree_M >  0.50
+|   |--- cat__sex_Male <= 0.50
+|   |   |--- num__priors_count <= -0.37
+|   |   |   |--- num__age <= 0.17
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__age >  0.17
+|   |   |   |   |--- class: 3
+|   |   |--- num__priors_count >  -0.37
+|   |   |   |--- num__age <= 2.47
+|   |   |   |   |--- class: 2
+|   |   |   |--- num__age >  2.47
+|   |   |   |   |--- class: 1
+|   |--- cat__sex_Male >  0.50
+|   |   |--- num__juv_fel_count <= 0.95
+|   |   |   |--- num__priors_count <= -0.16
+|   |   |   |   |--- class: 3
+|   |   |   |--- num__priors_count >  -0.16
+|   |   |   |   |--- class: 3
+|   |   |--- num__juv_fel_count >  0.95
+|   |   |   |--- num__age <= 0.51
+|   |   |   |   |--- class: 1
+|   |   |   |--- num__age >  0.51
+|   |   |   |   |--- class: 3
+
+
