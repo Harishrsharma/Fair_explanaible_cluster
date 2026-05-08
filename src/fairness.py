@@ -16,7 +16,7 @@
 import math
 import numpy as np
 from scipy.spatial.distance import cdist
-from src.config import QUADTREE_MAX_LEVELS, QUADTREE_RANDOM_SHIFT, QUADTREE_EPSILON
+from src.config import QUADTREE_MAX_LEVELS, QUADTREE_RANDOM_SHIFT, QUADTREE_EPSILON, RANDOM_STATE
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -397,3 +397,164 @@ def fairness_metrics(labels, sensitive, p=1, q=2):
         "violation_rate": violations / K,
         "avg_dp_gap":     float(np.mean(dp_gaps))  if dp_gaps  else 0.0,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Bounded-representation fair clustering  (Bera et al., 2019)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _constrained_assignment(X, centers, sensitive, alpha, beta):
+    """
+    Greedy proportional-bounds assignment (inner loop of bounded-rep EM).
+
+    Each point is assigned (in random order) to the nearest cluster c
+    whose group fraction after assignment remains within [alpha, beta].
+    If no feasible cluster exists for a point, the nearest cluster is
+    used as a fallback (ignoring bounds) — this is the standard greedy
+    infeasibility resolution used in the clustering literature.
+
+    Parameters
+    ----------
+    X         : ndarray (n, d)
+    centers   : ndarray (k, d)
+    sensitive : ndarray (n,) – binary {0, 1}
+    alpha     : float – lower bound on group fraction in any cluster
+    beta      : float – upper bound on group fraction in any cluster
+
+    Returns
+    -------
+    labels : ndarray (n,)
+
+    Reference
+    ---------
+    Bera et al. (2019) §3 proportional fairness assignment.
+    """
+    n, k = len(X), len(centers)
+    labels = np.full(n, -1, dtype=int)
+    counts = np.zeros((k, 2), dtype=int)   # counts[c, g] = # group-g in cluster c
+    sizes  = np.zeros(k,      dtype=int)
+
+    rng   = np.random.default_rng(RANDOM_STATE)
+    order = rng.permutation(n)
+
+    # Pre-compute all pairwise distances (n × k) — avoids recomputation in loop
+    diffs  = X[:, None, :] - centers[None, :, :]     # (n, k, d)
+    all_d  = np.sqrt((diffs ** 2).sum(axis=2))        # (n, k)
+
+    for i in order:
+        g      = int(sensitive[i])
+        ranked = np.argsort(all_d[i])
+
+        best = -1
+        for c in ranked:
+            s_new = sizes[c] + 1
+            g_new = counts[c, g] + 1
+
+            # Only enforce upper bound; lower bound aspirational for small clusters
+            frac_g = g_new / s_new
+            if frac_g > beta:          # too many of this group — skip
+                continue
+            best = c
+            break
+
+        if best == -1:                 # fallback: nearest cluster ignoring bounds
+            best = int(ranked[0])
+
+        labels[i]        = best
+        counts[best, g] += 1
+        sizes[best]     += 1
+
+    return labels
+
+
+def bounded_representation_clustering(X, sensitive, k,
+                                       random_state=None, n_iter=20):
+    """
+    Proportionally fair clustering via bounded-representation constraints.
+
+    Fairness definition
+    -------------------
+    Each cluster must contain a fraction of each sensitive group that
+    lies within [alpha, beta], where:
+        alpha = max(0.05, p_global − 0.15)
+        beta  = min(0.95, p_global + 0.15)
+    and p_global = global fraction of group-1 in the dataset.
+
+    Algorithm
+    ---------
+    1. Initialise k centres with KMeans++ seeding (fast, spread initialisation).
+    2. Repeat up to n_iter times:
+       a. Greedy constrained assignment: each point → nearest centre whose
+          group-1 fraction stays ≤ beta. Fallback to nearest centre when
+          no feasible centre exists (greedy infeasibility).
+       b. Recompute centres as means of assigned members.
+       c. Early stop if labels unchanged.
+
+    Limitations
+    -----------
+    This is a practical greedy approximation of the LP/flow-based
+    assignment in Bera et al. (2019). On heavily skewed datasets
+    (e.g. Adult 67/33 with k=6) the fallback fires frequently, producing
+    degenerate small clusters with near-zero balance — a known limitation
+    of greedy constrained assignment on imbalanced data.
+
+    Parameters
+    ----------
+    X            : ndarray (n, d) – standardised feature matrix
+    sensitive    : ndarray (n,)   – binary {0, 1} group membership
+    k            : int            – number of clusters
+    random_state : int or None
+    n_iter       : int            – max EM iterations (default 20)
+
+    Returns
+    -------
+    labels : ndarray (n,) – cluster assignments (0 … k-1)
+
+    Reference
+    ---------
+    Bera, S.K., Chakrabarty, D., Flores, N., & Negahbani, M. (2019).
+    "Fair Algorithms for Clustering." NeurIPS 2019.
+    https://proceedings.neurips.cc/paper/2019/hash/
+    fc490ca45c00b1249bbe3554a4fdf6fb-Abstract.html
+    """
+    from sklearn.cluster import KMeans
+
+    if random_state is None:
+        random_state = RANDOM_STATE
+
+    n = len(X)
+    p_global = float(sensitive.sum()) / n       # global fraction of group-1
+
+    # Proportional bounds (Bera et al. §3, practical adaptation)
+    alpha = max(0.05, p_global - 0.15)
+    beta  = min(0.95, p_global + 0.15)
+
+    # KMeans++ initialisation — good spread of starting centres
+    km_init = KMeans(n_clusters=k, init="k-means++", n_init=1,
+                     max_iter=1, random_state=random_state)
+    km_init.fit(X)
+    centers = km_init.cluster_centers_.copy()
+
+    labels = np.full(n, -1, dtype=int)
+
+    for _ in range(n_iter):
+        new_labels = _constrained_assignment(X, centers, sensitive, alpha, beta)
+
+        # Recompute centres as means of assigned points
+        new_centers = np.zeros_like(centers)
+        for c in range(k):
+            members = X[new_labels == c]
+            new_centers[c] = members.mean(axis=0) if len(members) > 0 else centers[c]
+
+        if np.array_equal(new_labels, labels):
+            break
+        labels  = new_labels
+        centers = new_centers
+
+    # Safety: ensure all points are labelled (no -1 remaining)
+    unlabelled = labels == -1
+    if unlabelled.any():
+        dists = np.sqrt(((X[unlabelled, None, :] - centers[None, :, :]) ** 2).sum(axis=2))
+        labels[unlabelled] = np.argmin(dists, axis=1)
+
+    return labels

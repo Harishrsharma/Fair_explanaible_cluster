@@ -111,6 +111,134 @@ def explainability_metrics(X, labels, feature_names=None, max_depth=None,
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Attribution stability (feature importance robustness across bootstrap resamples)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def attribution_stability(X, labels, feature_names=None,
+                          n_bootstrap=20, max_depth=None,
+                          random_state=None):
+    """
+    Measure the stability of feature attribution (importance) scores across
+    bootstrap resamples of the surrogate decision tree.
+
+    Method
+    ------
+    For b = 1 … n_bootstrap:
+      1. Draw a bootstrap resample (X_b, labels_b) with replacement.
+      2. Train a surrogate DecisionTreeClassifier on (X_b, labels_b).
+      3. Record Gini-based feature importances (clf.feature_importances_).
+
+    Stability metrics computed across all B resamples:
+      mean_spearman  — mean pairwise Spearman rank correlation of importance
+                       vectors (higher → more stable attributions)
+      std_spearman   — standard deviation of pairwise Spearman values
+      top3_stability — fraction of bootstrap runs whose top-3 features match
+                       the consensus (mean-importance) top-3
+
+    Why Spearman?
+    -------------
+    We care about rank consistency of feature importance — whether the same
+    features are consistently deemed most important — rather than exact
+    magnitude agreement.  Spearman rank correlation directly measures this
+    and is robust to scale differences between tree resamples.
+    This follows Alvarez-Melis & Jaakkola (2018).
+
+    Parameters
+    ----------
+    X             : ndarray (n, d)
+    labels        : ndarray (n,)   — cluster assignments
+    feature_names : list of str or None
+    n_bootstrap   : int            — number of bootstrap resamples (default 20)
+    max_depth     : int or None    — tree depth (default from config)
+    random_state  : int or None
+
+    Returns
+    -------
+    dict with keys:
+        mean_spearman   : float     — mean pairwise Spearman rank correlation
+        std_spearman    : float     — std of pairwise Spearman values
+        top3_stability  : float     — fraction of runs matching consensus top-3
+        mean_importances: ndarray (d,)  — per-feature mean importance
+        std_importances : ndarray (d,)  — per-feature std of importance
+        feature_names   : list of str
+
+    References
+    ----------
+    Lundberg, S.M., & Lee, S.I. (2017).  "A Unified Approach to Interpreting
+    Model Predictions."  NeurIPS 2017.  https://arxiv.org/abs/1705.07874
+
+    Alvarez-Melis, D., & Jaakkola, T.S. (2018).  "On the Robustness of
+    Interpretability Methods."  ICML Workshop on Human Interpretability in ML.
+    https://arxiv.org/abs/1806.08049
+    """
+    from scipy.stats import spearmanr
+
+    if max_depth    is None: max_depth    = TREE_MAX_DEPTH
+    if random_state is None: random_state = RANDOM_STATE
+
+    rng   = np.random.default_rng(random_state)
+    n, d  = X.shape
+    names = (list(feature_names) if feature_names is not None
+             else [f"f{i}" for i in range(d)])
+
+    _nan = {
+        "mean_spearman":    float("nan"),
+        "std_spearman":     float("nan"),
+        "top3_stability":   float("nan"),
+        "mean_importances": np.zeros(d),
+        "std_importances":  np.zeros(d),
+        "feature_names":    names,
+    }
+
+    importances_list = []
+
+    for _ in range(n_bootstrap):
+        idx = rng.choice(n, n, replace=True)
+        X_b = X[idx]
+        y_b = labels[idx]
+
+        if len(np.unique(y_b)) < 2:
+            continue                    # degenerate bootstrap — skip
+
+        clf = DecisionTreeClassifier(
+            max_depth=max_depth,
+            random_state=int(rng.integers(1_000_000))
+        )
+        clf.fit(X_b, y_b)
+        importances_list.append(clf.feature_importances_.copy())
+
+    if len(importances_list) < 2:
+        return _nan
+
+    imp_matrix = np.array(importances_list)    # (n_bootstrap, d)
+
+    # Pairwise Spearman rank correlations across all B*(B-1)/2 pairs
+    corrs = []
+    for i in range(len(importances_list)):
+        for j in range(i + 1, len(importances_list)):
+            r, _ = spearmanr(imp_matrix[i], imp_matrix[j])
+            if not np.isnan(r):
+                corrs.append(float(r))
+
+    # Top-3 stability: consensus = top-3 features by mean importance
+    mean_imp       = imp_matrix.mean(axis=0)
+    consensus_top3 = set(np.argsort(mean_imp)[-3:])
+    top3_matches   = sum(
+        set(np.argsort(imp)[-3:]) == consensus_top3
+        for imp in importances_list
+    )
+
+    return {
+        "mean_spearman":    float(np.mean(corrs)) if corrs else float("nan"),
+        "std_spearman":     float(np.std(corrs))  if corrs else float("nan"),
+        "top3_stability":   top3_matches / len(importances_list),
+        "mean_importances": mean_imp,
+        "std_importances":  imp_matrix.std(axis=0),
+        "feature_names":    names,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Exemplar-based explainability (medoid prototypes)
 # ─────────────────────────────────────────────────────────────────────────────
 

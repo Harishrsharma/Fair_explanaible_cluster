@@ -50,6 +50,7 @@ from src.fairness import (
     assign_labels_from_fairlets,
     fairness_metrics,
     compute_pq,
+    bounded_representation_clustering,
 )
 from src.metrics import clustering_metrics
 from src.explainability import explainability_metrics, exemplar_metrics
@@ -80,11 +81,12 @@ def evaluate(name, X, labels, sensitive, feature_names, p, q):
     row["tree_leaves"]     = exp["tree_leaves"]
     row["_decision_rules"] = exp["decision_rules"]   # stored separately
 
-    # 4. Exemplar-based explainability (medoid prototypes)
+    # 4. Exemplar-based explainability (medoid prototypes + PAM cost)
     ex = exemplar_metrics(X, labels)
-    row["avg_exemplar_coverage"] = ex["avg_exemplar_coverage"]
-    row["min_exemplar_coverage"] = ex["min_exemplar_coverage"]
-    row["avg_medoid_distance"]   = ex["avg_medoid_distance"]
+    row["pam_cost"]              = ex["pam_cost"]              # published metric
+    row["avg_exemplar_coverage"] = ex["avg_exemplar_coverage"] # CSV only
+    row["min_exemplar_coverage"] = ex["min_exemplar_coverage"] # CSV only
+    row["avg_medoid_distance"]   = ex["avg_medoid_distance"]   # legacy alias
 
     return row
 
@@ -148,7 +150,7 @@ def run_dataset(dataset_name, verbose=True):
     rules_dict = {}
 
     # -- Baseline 1: K-Means --------------------------------------------------
-    if verbose: print(f"  [1/3] K-Means baseline ...", end=" ", flush=True)
+    if verbose: print(f"  [1/4] K-Means baseline ...", end=" ", flush=True)
     t = time.time()
     labels = run_kmeans(X, k, RANDOM_STATE)
     row = evaluate("kmeans_baseline", X, labels, sensitive, feature_names, p, q)
@@ -172,7 +174,7 @@ def run_dataset(dataset_name, verbose=True):
     # if verbose: print(f"done ({row['runtime_s']}s)")
 
     # -- Baseline 2: K-Medians ------------------------------------------------
-    if verbose: print(f"  [2/3] K-Medians baseline ...", end=" ", flush=True)
+    if verbose: print(f"  [2/4] K-Medians baseline ...", end=" ", flush=True)
     t = time.time()
     labels = k_medians(X, k, random_state=RANDOM_STATE)
     row = evaluate("kmedians_baseline", X, labels, sensitive, feature_names, p, q)
@@ -184,7 +186,7 @@ def run_dataset(dataset_name, verbose=True):
     # -- Fairlet decomposition (shared for both fair methods) -----------------
     # Reference: Chierichetti et al. (2017) NeurIPS.
     # GitHub:    https://github.com/MilkaLichtblau/Multinomial_Fairlets
-    if verbose: print(f"  [3/3] Fairlet decomposition ...", end=" ", flush=True)
+    if verbose: print(f"  [3/4] Fairlet decomposition ...", end=" ", flush=True)
     t_fl = time.time()
     fairlets, fc_indices = twagner_fairlet_decomposition(X, sensitive, p, q)
     fc_X = X[fc_indices]
@@ -217,6 +219,21 @@ def run_dataset(dataset_name, verbose=True):
     results.append(row)
     if verbose: print(f"done ({row['runtime_s']}s)")
 
+    # -- Bounded Representation (Bera et al., 2019) ---------------------------
+    # Proportionally fair clustering: each cluster's group fraction is bounded
+    # within [alpha, beta] = [max(0.05, p-0.15), min(0.95, p+0.15)].
+    # Uses greedy constrained assignment (practical approximation of LP/flow).
+    # Reference: Bera et al. (2019) "Fair Algorithms for Clustering." NeurIPS.
+    if verbose: print(f"  [4/4] Bounded-Rep (Bera et al.) ...", end=" ", flush=True)
+    t = time.time()
+    labels = bounded_representation_clustering(X, sensitive, k,
+                                               random_state=RANDOM_STATE)
+    row = evaluate("bounded_rep", X, labels, sensitive, feature_names, p, q)
+    row["runtime_s"] = round(time.time() - t, 2)
+    rules_dict["bounded_rep"] = row.pop("_decision_rules")
+    results.append(row)
+    if verbose: print(f"done ({row['runtime_s']}s)")
+
     total_time = round(time.time() - t0, 1)
     if verbose:
         print(f"\n  Total time: {total_time}s")
@@ -234,7 +251,9 @@ def run_dataset(dataset_name, verbose=True):
         # -- Explainability: rule-based ----------------------------------------
         "tree_fidelity", "tree_depth", "tree_leaves",
         # -- Explainability: exemplar-based ------------------------------------
-        "avg_exemplar_coverage", "min_exemplar_coverage", "avg_medoid_distance",
+        "pam_cost",                                          # published metric
+        "avg_exemplar_coverage", "min_exemplar_coverage",   # CSV only
+        "avg_medoid_distance",                               # legacy alias
         "runtime_s",
     ]
     present = [c for c in metric_cols if c in df.columns]
