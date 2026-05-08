@@ -238,6 +238,19 @@ def run_dataset(dataset_name, verbose=True):
     if verbose:
         print(f"\n  Total time: {total_time}s")
 
+    # ── Cost of Fairness ─────────────────────────────────────────────────────
+    # Defined as: SSE_algorithm / SSE_kmeans_baseline  (Chierichetti 2017, §4;
+    # Bera et al. 2019 Theorem 1). Measures quality cost paid for fairness.
+    # Baseline value = 1.0; fair algorithms > 1.0 when they hurt quality.
+    baseline_sse = next(
+        (r["sse"] for r in results if r["model"] == "kmeans_baseline"), None
+    )
+    for row in results:
+        if baseline_sse and baseline_sse > 0:
+            row["cost_of_fairness"] = row["sse"] / baseline_sse
+        else:
+            row["cost_of_fairness"] = float("nan")
+
     df = pd.DataFrame(results)
     df.insert(0, "dataset", dataset_name)
 
@@ -248,6 +261,8 @@ def run_dataset(dataset_name, verbose=True):
         "silhouette", "silhouette_pca", "davies_bouldin", "sse",
         # -- Fairness ---------------------------------------------------------
         "min_balance", "avg_balance", "violation_rate", "avg_dp_gap",
+        # -- Cost of fairness (Chierichetti 2017; Bera et al. 2019) -----------
+        "cost_of_fairness",
         # -- Explainability: rule-based ----------------------------------------
         "tree_fidelity", "tree_depth", "tree_leaves",
         # -- Explainability: exemplar-based ------------------------------------

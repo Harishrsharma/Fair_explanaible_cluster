@@ -45,7 +45,7 @@ from src.clustering import (
 )
 from src.fairness import (
     twagner_fairlet_decomposition, assign_labels_from_fairlets,
-    fairness_metrics, compute_pq,
+    fairness_metrics, compute_pq, bounded_representation_clustering,
 )
 from src.metrics import clustering_metrics
 from src.explainability import explainability_metrics, exemplar_metrics
@@ -70,20 +70,27 @@ METRIC_LABELS = {
     "tree_fidelity":         "Surrogate tree fidelity (higher = more explainable)",
     "tree_depth":            "Surrogate tree depth",
     "tree_leaves":           "Surrogate tree leaves",
+    "pam_cost":              "PAM cost — (1/n)Σd(x,m_k) — (lower = tighter exemplars)",
+    "cost_of_fairness":      "Cost of Fairness — SSE_fair / SSE_baseline (lower = cheaper fairness)",
     "avg_exemplar_coverage": "Average exemplar coverage (higher = better)",
     "min_exemplar_coverage": "Minimum exemplar coverage (higher = better)",
     "avg_medoid_distance":   "Average medoid distance (lower = tighter)",
     "runtime_s":             "Runtime (seconds)",
 }
 
-# Default metrics to plot (all of them, in a sensible order)
-DEFAULT_METRICS = list(METRIC_LABELS.keys())
+# Metrics shown in bar charts (key published metrics only — skip internal/legacy)
+DEFAULT_METRICS = [
+    "silhouette", "davies_bouldin", "sse",
+    "min_balance", "violation_rate", "avg_dp_gap",
+    "tree_fidelity", "pam_cost", "cost_of_fairness",
+]
 
 # Friendly algorithm display names
 ALGO_LABELS = {
     "kmeans_baseline":   "K-Means",
     "kmedians_baseline": "K-Medians",
-    "fair_kmedians":     "Fair K-Medians (Fairlets)",
+    "fair_kmedians":     "Fair K-Medians\n(Fairlets)",
+    "bounded_rep":       "Bounded-Rep\n(Bera et al.)",
     "fair_kmedoids":     "Fair K-Medoids (Fairlets)",
     "kmedoids_baseline": "K-Medoids",
 }
@@ -329,12 +336,14 @@ def plot_cluster_scatter(X, labels, algorithm_name, dataset_name,
         ax.text(cx, cy, f"  C{k}", fontsize=11,
                 fontweight="bold", color="black")
 
-    ax.set_xlabel(f"PC1 ({var_explained[0]*100:.1f}% variance)")
-    ax.set_ylabel(f"PC2 ({var_explained[1]*100:.1f}% variance)")
+    ax.set_xlabel(f"PC1 ({var_explained[0]*100:.1f}% variance explained)", fontsize=10)
+    ax.set_ylabel(f"PC2 ({var_explained[1]*100:.1f}% variance explained)", fontsize=10)
     ax.set_title(
-        f"Cluster assignment (PCA projection)\n"
-        f"Algorithm: {_pretty_algo(algorithm_name)}  |  Dataset: {dataset_name}",
-        fontsize=11,
+        f"Cluster assignment — PCA 2-D projection\n"
+        f"Algorithm: {_pretty_algo(algorithm_name)}  |  Dataset: {dataset_name.upper()}\n"
+        f"PCA chosen: linear, deterministic, preserves global variance structure "
+        f"(total {(var_explained[0]+var_explained[1])*100:.1f}% retained)",
+        fontsize=10,
     )
     ax.legend(loc="best", fontsize=9, framealpha=0.9)
     ax.grid(linestyle="--", alpha=0.4)
@@ -359,8 +368,7 @@ def plot_cluster_scatter(X, labels, algorithm_name, dataset_name,
 # touched.
 
 def _evaluate_for_plot(name, X, labels, sensitive, feature_names, p, q):
-    """Same metric-collection logic as pipeline.evaluate(), inlined here so we
-    can also keep the labels for plotting."""
+    """Collect all metrics for one algorithm result (mirrors pipeline.evaluate)."""
     row = {"model": name}
     row.update(clustering_metrics(X, labels))
     row.update(fairness_metrics(labels, sensitive, p, q))
@@ -369,6 +377,7 @@ def _evaluate_for_plot(name, X, labels, sensitive, feature_names, p, q):
     row["tree_depth"]    = exp["tree_depth"]
     row["tree_leaves"]   = exp["tree_leaves"]
     ex = exemplar_metrics(X, labels)
+    row["pam_cost"]              = ex["pam_cost"]
     row["avg_exemplar_coverage"] = ex["avg_exemplar_coverage"]
     row["min_exemplar_coverage"] = ex["min_exemplar_coverage"]
     row["avg_medoid_distance"]   = ex["avg_medoid_distance"]
@@ -376,19 +385,23 @@ def _evaluate_for_plot(name, X, labels, sensitive, feature_names, p, q):
 
 
 def visualize_dataset(dataset_name, output_dir=None, verbose=True):
-    """Run the three clustering algorithms once, then save every chart family
-    (metric comparison + per-cluster feature importance + PCA scatter).
+    """Run all four clustering algorithms then save every chart family.
+
+    Charts produced per algorithm:
+      - PCA 2-D scatter plot (cluster membership)
+      - Top-5 feature importance per cluster (one-vs-rest Random Forest)
+      - Surrogate decision tree visual figure
+    Plus one bar chart per metric across all algorithms.
 
     Parameters
     ----------
     dataset_name : str  -- one of 'bank', 'adult', 'compas', 'german'
-    output_dir   : str or None
-        Folder for the figures. Defaults to results/figures/<dataset_name>/.
+    output_dir   : str or None  (defaults to results/figures/<dataset_name>/)
     verbose      : bool
 
     Returns
     -------
-    df_results      : pd.DataFrame
+    df_results      : pd.DataFrame  (one row per algorithm, all metrics)
     labels_per_algo : dict {algorithm_name: ndarray of cluster labels}
     """
     if output_dir is None:
@@ -397,11 +410,11 @@ def visualize_dataset(dataset_name, output_dir=None, verbose=True):
 
     if verbose:
         print(f"\n{'=' * 60}")
-        print(f"  Visualizing dataset: {dataset_name.upper()}")
-        print(f"  Output folder     : {output_dir}")
+        print(f"  Generating charts for: {dataset_name.upper()}")
+        print(f"  Output folder        : {output_dir}")
         print(f"{'=' * 60}")
 
-    # -- Load data + auto p/q + auto k (same as pipeline) --------------------
+    # -- Load data + auto p/q + auto k (mirrors pipeline.run_dataset) ---------
     X, sensitive, feature_names = load_dataset(
         dataset_name, DATASETS[dataset_name], RANDOM_STATE
     )
@@ -412,7 +425,7 @@ def visualize_dataset(dataset_name, output_dir=None, verbose=True):
         k = int(k_override)
     else:
         if verbose:
-            print("  Running elbow method ...", end=" ", flush=True)
+            print("  Detecting optimal k ...", end=" ", flush=True)
         k, _, _ = find_optimal_k(X, k_range=K_RANGE, random_state=RANDOM_STATE)
         if verbose:
             print(f"k = {k}")
@@ -421,11 +434,11 @@ def visualize_dataset(dataset_name, output_dir=None, verbose=True):
         print(f"  Samples = {X.shape[0]}  Features = {X.shape[1]}  "
               f"k = {k}  p/q = {p}/{q}")
 
-    # -- Run all 3 algorithms ------------------------------------------------
+    # ── Run all 4 algorithms ─────────────────────────────────────────────────
     labels_per_algo = {}
     metric_rows     = []
 
-    if verbose: print("  [1/3] K-Means ...", end=" ", flush=True)
+    if verbose: print("  [1/4] K-Means ...", end=" ", flush=True)
     t = time.time()
     labels_per_algo["kmeans_baseline"] = run_kmeans(X, k, RANDOM_STATE)
     metric_rows.append(_evaluate_for_plot(
@@ -434,19 +447,16 @@ def visualize_dataset(dataset_name, output_dir=None, verbose=True):
     ))
     if verbose: print(f"done ({time.time()-t:.1f}s)")
 
-    if verbose: print("  [2/3] K-Medians ...", end=" ", flush=True)
+    if verbose: print("  [2/4] K-Medians ...", end=" ", flush=True)
     t = time.time()
-    labels_per_algo["kmedians_baseline"] = k_medians(
-        X, k, random_state=RANDOM_STATE
-    )
+    labels_per_algo["kmedians_baseline"] = k_medians(X, k, random_state=RANDOM_STATE)
     metric_rows.append(_evaluate_for_plot(
         "kmedians_baseline", X, labels_per_algo["kmedians_baseline"],
         sensitive, feature_names, p, q,
     ))
     if verbose: print(f"done ({time.time()-t:.1f}s)")
 
-    if verbose: print("  [3/3] Fair K-Medians (fairlets) ...",
-                      end=" ", flush=True)
+    if verbose: print("  [3/4] Fair K-Medians (fairlets) ...", end=" ", flush=True)
     t = time.time()
     fairlets, fc_indices = twagner_fairlet_decomposition(X, sensitive, p, q)
     fc_labels = cluster_fairlet_centers(
@@ -461,27 +471,58 @@ def visualize_dataset(dataset_name, output_dir=None, verbose=True):
     ))
     if verbose: print(f"done ({time.time()-t:.1f}s)")
 
+    if verbose: print("  [4/4] Bounded-Rep (Bera et al.) ...", end=" ", flush=True)
+    t = time.time()
+    labels_per_algo["bounded_rep"] = bounded_representation_clustering(
+        X, sensitive, k, random_state=RANDOM_STATE
+    )
+    metric_rows.append(_evaluate_for_plot(
+        "bounded_rep", X, labels_per_algo["bounded_rep"],
+        sensitive, feature_names, p, q,
+    ))
+    if verbose: print(f"done ({time.time()-t:.1f}s)")
+
+    # ── Cost of Fairness: SSE_algo / SSE_kmeans_baseline ─────────────────────
+    # Reference: Chierichetti et al. (2017) §4; Bera et al. (2019) Theorem 1.
+    # Measures quality cost incurred to achieve fairness.
+    # Value = 1.0 for baseline; > 1.0 means fairness costs SSE quality.
+    baseline_sse = next(
+        (r["sse"] for r in metric_rows if r["model"] == "kmeans_baseline"), None
+    )
+    for row in metric_rows:
+        if baseline_sse and baseline_sse > 0:
+            row["cost_of_fairness"] = row["sse"] / baseline_sse
+        else:
+            row["cost_of_fairness"] = float("nan")
+
     df_results = pd.DataFrame(metric_rows)
 
-    # -- Save plots ----------------------------------------------------------
-    if verbose: print("  Saving metric-comparison charts ...",
-                      end=" ", flush=True)
+    # ── Metric comparison bar charts ─────────────────────────────────────────
+    if verbose: print("  Saving metric-comparison charts ...", end=" ", flush=True)
     paths = plot_metric_comparison(df_results, dataset_name, output_dir)
     if verbose: print(f"{len(paths)} charts")
 
-    if verbose: print("  Saving feature-importance + scatter charts ...",
+    # ── Per-algorithm: scatter + feature importance + decision tree ──────────
+    if verbose: print("  Saving scatter / feature-importance / decision-tree ...",
                       end=" ", flush=True)
-    for algo, labels in labels_per_algo.items():
-        plot_feature_importance_per_cluster(
-            X, labels, feature_names,
-            algorithm_name=algo, dataset_name=dataset_name,
-            output_dir=output_dir,
-        )
+    n_charts = 0
+    for algo, algo_labels in labels_per_algo.items():
         plot_cluster_scatter(
-            X, labels,
+            X, algo_labels,
             algorithm_name=algo, dataset_name=dataset_name,
             output_dir=output_dir,
         )
-    if verbose: print(f"done ({len(labels_per_algo)} algorithms)")
+        plot_feature_importance_per_cluster(
+            X, algo_labels, feature_names,
+            algorithm_name=algo, dataset_name=dataset_name,
+            output_dir=output_dir,
+        )
+        plot_decision_tree(
+            X, algo_labels, feature_names,
+            algorithm_name=algo, dataset_name=dataset_name,
+            output_dir=output_dir,
+        )
+        n_charts += 3
+    if verbose: print(f"done ({n_charts} charts, {len(labels_per_algo)} algorithms)")
 
     return df_results, labels_per_algo

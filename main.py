@@ -47,7 +47,7 @@ def _print_summary(df):
         cols = [c for c in [
             "dataset", "model", "min_balance", "violation_rate",
             "silhouette", "davies_bouldin", "sse", "tree_fidelity",
-            "avg_dp_gap", "pam_cost", "pareto_optimal",
+            "avg_dp_gap", "cost_of_fairness", "pam_cost", "pareto_optimal",
         ] if c in df.columns]
         print("\nDone. Summary:")
         print(df[cols].to_string(index=False, float_format=lambda x: f"{x:.4f}"))
@@ -62,12 +62,14 @@ def _print_summary(df):
         ("davies_bouldin",      "Davies-B ↓",     "right"),
         ("sse",                 "SSE ↓",          "right"),
         ("avg_dp_gap",          "DP Gap ↓",       "right"),
+        ("cost_of_fairness",    "FairCost ↓",     "right"),
         ("tree_fidelity",       "Tree Fid ↑",     "right"),
         ("pam_cost",            "PAM Cost ↓",     "right"),
         ("pareto_optimal",      "Pareto",         "center"),
     ]
     BETTER_HIGH = {"silhouette", "min_balance", "tree_fidelity"}
-    BETTER_LOW  = {"davies_bouldin", "violation_rate", "sse", "avg_dp_gap", "pam_cost"}
+    BETTER_LOW  = {"davies_bouldin", "violation_rate", "sse", "avg_dp_gap",
+                   "pam_cost", "cost_of_fairness"}
 
     MODEL_STYLE = {
         "kmeans_baseline":   "bright_blue",
