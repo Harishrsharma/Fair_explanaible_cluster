@@ -34,6 +34,7 @@ matplotlib.use("Agg")  # safe for headless / notebook usage
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 
 from src.config import (
     RANDOM_STATE, DATASETS, RESULTS_DIR,
@@ -353,6 +354,115 @@ def plot_cluster_scatter(X, labels, algorithm_name, dataset_name,
         output_dir, f"scatter_{algorithm_name}_{dataset_name}.png"
     )
     plt.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return out_path
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3b. Surrogate decision tree visual figure
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _clean_feature_name(name, max_len=40):
+    """Strip sklearn ColumnTransformer prefixes (num__, cat__) and truncate."""
+    name = str(name)
+    for prefix in ("num__", "cat__", "remainder__"):
+        if name.lower().startswith(prefix):
+            name = name[len(prefix):]
+            break
+    return name[:max_len] if len(name) > max_len else name
+
+
+def plot_decision_tree(X, labels, feature_names, algorithm_name,
+                       dataset_name, output_dir,
+                       max_depth=None, random_state=None,
+                       sensitive_col_prefix="sensitive"):
+    """
+    Train the surrogate decision tree on the full dataset and save a visual
+    PNG figure.  Matches explainability_metrics() exactly (same data, same
+    random_state) so terminal rules == visual figure branching.
+
+    Colour scheme
+    -------------
+    sklearn plot_tree fills nodes by majority class.  Each unique cluster gets
+    a distinct hue (sklearn's fixed palette: orange/blue/green/red/purple…).
+    Shade = purity: saturated = pure leaf (Gini ≈ 0); pale = mixed root.
+
+    Parameters
+    ----------
+    X                    : ndarray (n, d)
+    labels               : ndarray (n,)
+    feature_names        : list of str
+    algorithm_name       : str
+    dataset_name         : str
+    output_dir           : str
+    max_depth            : int or None
+    random_state         : int or None
+    sensitive_col_prefix : str — columns with this prefix excluded (fairness)
+
+    Returns
+    -------
+    str : path of saved PNG
+
+    Reference
+    ---------
+    Moshkovitz et al. (2020) "Explainable k-Means and k-Medians Clustering."
+    ICML 2020.  https://arxiv.org/abs/2002.12538
+    """
+    from src.config import TREE_MAX_DEPTH
+
+    if max_depth    is None: max_depth    = TREE_MAX_DEPTH
+    if random_state is None: random_state = RANDOM_STATE
+
+    _ensure_dir(output_dir)
+
+    feature_names = list(feature_names)
+
+    # Drop sensitive columns (same exclusion as explainability_metrics)
+    keep_idx = [i for i, n in enumerate(feature_names)
+                if not n.lower().startswith(sensitive_col_prefix.lower())]
+    X_use       = X[:, keep_idx]
+    names_clean = [_clean_feature_name(feature_names[i]) for i in keep_idx]
+
+    unique_labels = np.unique(labels)
+    class_names   = [f"Cluster {k}" for k in unique_labels]
+
+    # Train on FULL dataset — matches explainability_metrics rules tree
+    clf = DecisionTreeClassifier(max_depth=max_depth, random_state=random_state)
+    clf.fit(X_use, labels)
+    fidelity = clf.score(X_use, labels)
+
+    depth   = clf.get_depth()
+    n_nodes = clf.tree_.node_count
+    fig_w   = max(20, depth * 4)
+    fig_h   = max(8,  depth * 2.5)
+
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+
+    plot_tree(
+        clf,
+        feature_names=names_clean,
+        class_names=class_names,
+        filled=True,       # colour = majority class; shade = purity
+        rounded=True,
+        impurity=True,     # show Gini
+        proportion=False,  # show raw sample counts
+        ax=ax,
+        fontsize=9,
+    )
+
+    ax.set_title(
+        f"Surrogate decision tree — cluster explanations\n"
+        f"Algorithm: {_pretty_algo(algorithm_name)}  |  "
+        f"Dataset: {dataset_name}  |  "
+        f"Depth: {depth}  |  Nodes: {n_nodes}  |  "
+        f"Training fidelity: {fidelity:.1%}",
+        fontsize=11, pad=12,
+    )
+
+    out_path = os.path.join(
+        output_dir, f"decision_tree_{algorithm_name}_{dataset_name}.png"
+    )
+    plt.savefig(out_path, dpi=130, bbox_inches="tight")
     plt.close(fig)
     return out_path
 
