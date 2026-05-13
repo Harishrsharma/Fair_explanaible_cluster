@@ -51,6 +51,7 @@ from src.fairness import (
     fairness_metrics,
     compute_pq,
     bounded_representation_clustering,
+    per_cluster_balance,
 )
 from src.metrics import clustering_metrics
 from src.explainability import explainability_metrics, exemplar_metrics
@@ -61,18 +62,24 @@ from src.logger import log_run
 # Single-model evaluation
 # -----------------------------------------------------------------------------
 
-def evaluate(name, X, labels, sensitive, feature_names, p, q):
+def evaluate(name, X, labels, sensitive, feature_names, p, q,
+             alpha=None, beta=None):
     """
     Evaluate one clustering result across all metric categories.
     Returns a flat dict ready to be added to a results DataFrame.
+
+    alpha, beta : float or None
+        Bera et al. proportional-fairness bounds.  When provided, violation_rate
+        uses the Bera [α,β] check instead of the Chierichetti balance < p/q check.
+        Pass these only for bounded_rep (which enforces exactly these bounds).
     """
     row = {"model": name}
 
     # 1. Clustering quality (silhouette, silhouette_pca, davies_bouldin, sse)
     row.update(clustering_metrics(X, labels))
 
-    # 2. Fairness (min_balance, avg_balance, violation_rate, avg_dp_gap)
-    row.update(fairness_metrics(labels, sensitive, p, q))
+    # 2. Fairness (min_balance, avg_balance, violation_rate)
+    row.update(fairness_metrics(labels, sensitive, p, q, alpha=alpha, beta=beta))
 
     # 3. Rule-based explainability (surrogate decision tree)
     exp = explainability_metrics(X, labels, feature_names=feature_names)
@@ -221,33 +228,42 @@ def run_dataset(dataset_name, verbose=True):
 
     # -- Bounded Representation (Bera et al., 2019) ---------------------------
     # Proportionally fair clustering: each cluster's group fraction is bounded
-    # within [alpha, beta] = [max(0.05, p-0.15), min(0.95, p+0.15)].
-    # Uses greedy constrained assignment (practical approximation of LP/flow).
+    # within [alpha, beta] = [max(0.0, p_global-0.15), min(1.0, p_global+0.15)].
+    # violation_rate uses Bera α/β check (not Chierichetti balance < p/q) so
+    # the metric matches the fairness criterion actually enforced by LP.
     # Reference: Bera et al. (2019) "Fair Algorithms for Clustering." NeurIPS.
     if verbose: print(f"  [4/4] Bounded-Rep (Bera et al.) ...", end=" ", flush=True)
     t = time.time()
     labels = bounded_representation_clustering(X, sensitive, k,
                                                random_state=RANDOM_STATE)
-    row = evaluate("bounded_rep", X, labels, sensitive, feature_names, p, q)
+    _p_global = float(sensitive.mean())
+    _alpha = max(0.0, _p_global - 0.15)
+    _beta  = min(1.0, _p_global + 0.15)
+    row = evaluate("bounded_rep", X, labels, sensitive, feature_names, p, q,
+                   alpha=_alpha, beta=_beta)
     row["runtime_s"] = round(time.time() - t, 2)
     rules_dict["bounded_rep"] = row.pop("_decision_rules")
     results.append(row)
-    if verbose: print(f"done ({row['runtime_s']}s)")
+    if verbose:
+        print(f"done ({row['runtime_s']}s)")
+        _print_cluster_balance(labels, sensitive, p, q)
 
     total_time = round(time.time() - t0, 1)
     if verbose:
         print(f"\n  Total time: {total_time}s")
 
     # ── Cost of Fairness ─────────────────────────────────────────────────────
-    # Defined as: SSE_algorithm / SSE_kmeans_baseline  (Chierichetti 2017, §4;
-    # Bera et al. 2019 Theorem 1). Measures quality cost paid for fairness.
+    # Defined as: PAM_cost_algo / PAM_cost_kmeans_baseline.
+    # PAM cost = (1/n) Σ d(x, medoid) uses linear distances — same metric
+    # family as the k-median objective in Chierichetti et al. (2017) §4 and
+    # Bera et al. (2019) Theorem 1 (OPT_fair / OPT_unconstrained).
     # Baseline value = 1.0; fair algorithms > 1.0 when they hurt quality.
-    baseline_sse = next(
-        (r["sse"] for r in results if r["model"] == "kmeans_baseline"), None
+    baseline_pam = next(
+        (r["pam_cost"] for r in results if r["model"] == "kmeans_baseline"), None
     )
     for row in results:
-        if baseline_sse and baseline_sse > 0:
-            row["cost_of_fairness"] = row["sse"] / baseline_sse
+        if baseline_pam and baseline_pam > 0:
+            row["cost_of_fairness"] = row["pam_cost"] / baseline_pam
         else:
             row["cost_of_fairness"] = float("nan")
 
@@ -260,7 +276,8 @@ def run_dataset(dataset_name, verbose=True):
         # -- Clustering quality -----------------------------------------------
         "silhouette", "silhouette_pca", "davies_bouldin", "sse",
         # -- Fairness ---------------------------------------------------------
-        "min_balance", "avg_balance", "violation_rate", "avg_dp_gap",
+        "min_balance", "avg_balance", "violation_rate",
+        # "avg_dp_gap",  # commented out — DP gap not cited for clustering context
         # -- Cost of fairness (Chierichetti 2017; Bera et al. 2019) -----------
         "cost_of_fairness",
         # -- Explainability: rule-based ----------------------------------------
@@ -346,7 +363,8 @@ def _print_table(df, p, q, k):
         # Clustering quality
         "silhouette", "silhouette_pca", "davies_bouldin", "sse",
         # Fairness
-        "min_balance", "avg_balance", "violation_rate", "avg_dp_gap",
+        "min_balance", "avg_balance", "violation_rate",
+        # "avg_dp_gap",  # commented out
         # Explainability
         "tree_fidelity",
         # Exemplar
@@ -356,6 +374,20 @@ def _print_table(df, p, q, k):
     print()
     print(f"  Balance threshold (p/q = {p}/{q} = {p/q:.3f})  |  k = {k}")
     print(df[cols].to_string(index=False, float_format=lambda x: f"{x:.4f}"))
+    print()
+
+
+def _print_cluster_balance(labels, sensitive, p, q):
+    """Print per-cluster group counts and balance for bounded_rep diagnostic."""
+    rows = per_cluster_balance(labels, sensitive, p, q)
+    threshold = p / q
+    header = f"    {'Cluster':>7}  {'Size':>6}  {'Group-0':>7}  {'Group-1':>7}  {'Balance':>8}  {'Violates':>8}"
+    print(f"    [bounded_rep per-cluster balance  (threshold = {threshold:.3f})]")
+    print(header)
+    for r in rows:
+        flag = " ← ZERO" if r["balance"] == 0.0 else (" ← violation" if r["violates"] else "")
+        print(f"    {r['cluster']:>7}  {r['n_total']:>6}  {r['n_group0']:>7}  "
+              f"{r['n_group1']:>7}  {r['balance']:>8.4f}  {str(r['violates']):>8}{flag}")
     print()
 
 

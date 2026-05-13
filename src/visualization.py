@@ -67,12 +67,12 @@ METRIC_LABELS = {
     "min_balance":           "Minimum cluster balance (higher = fairer)",
     "avg_balance":           "Average cluster balance (higher = fairer)",
     "violation_rate":        "Fairness violation rate (lower = fairer)",
-    "avg_dp_gap":            "Average demographic parity gap (lower = fairer)",
+    # "avg_dp_gap":          "Average demographic parity gap (lower = fairer)",  # commented out
     "tree_fidelity":         "Surrogate tree fidelity (higher = more explainable)",
     "tree_depth":            "Surrogate tree depth",
     "tree_leaves":           "Surrogate tree leaves",
     "pam_cost":              "PAM cost — (1/n)Σd(x,m_k) — (lower = tighter exemplars)",
-    "cost_of_fairness":      "Cost of Fairness — SSE_fair / SSE_baseline (lower = cheaper fairness)",
+    "cost_of_fairness":      "Cost of Fairness — PAM_fair / PAM_baseline (lower = cheaper fairness)",
     "avg_exemplar_coverage": "Average exemplar coverage (higher = better)",
     "min_exemplar_coverage": "Minimum exemplar coverage (higher = better)",
     "avg_medoid_distance":   "Average medoid distance (lower = tighter)",
@@ -82,7 +82,8 @@ METRIC_LABELS = {
 # Metrics shown in bar charts (key published metrics only — skip internal/legacy)
 DEFAULT_METRICS = [
     "silhouette", "davies_bouldin", "sse",
-    "min_balance", "violation_rate", "avg_dp_gap",
+    "min_balance", "violation_rate",
+    # "avg_dp_gap",  # commented out
     "tree_fidelity", "pam_cost", "cost_of_fairness",
 ]
 
@@ -326,9 +327,10 @@ def plot_cluster_scatter(X, labels, algorithm_name, dataset_name,
 
     for color, k in zip(colors, unique_labels):
         mask = labels_plot == k
+        n_cluster = int(mask.sum())
         ax.scatter(X_2d[mask, 0], X_2d[mask, 1],
                    s=14, alpha=0.65, color=color,
-                   label=f"Cluster {k}", edgecolor="none")
+                   label=f"Cluster {k}  (n={n_cluster:,})", edgecolor="none")
 
         # Annotate cluster centre
         cx, cy = X_2d[mask, 0].mean(), X_2d[mask, 1].mean()
@@ -477,11 +479,12 @@ def plot_decision_tree(X, labels, feature_names, algorithm_name,
 # can pass them to the plotting functions.  Nothing in src/pipeline.py is
 # touched.
 
-def _evaluate_for_plot(name, X, labels, sensitive, feature_names, p, q):
+def _evaluate_for_plot(name, X, labels, sensitive, feature_names, p, q,
+                       alpha=None, beta=None):
     """Collect all metrics for one algorithm result (mirrors pipeline.evaluate)."""
     row = {"model": name}
     row.update(clustering_metrics(X, labels))
-    row.update(fairness_metrics(labels, sensitive, p, q))
+    row.update(fairness_metrics(labels, sensitive, p, q, alpha=alpha, beta=beta))
     exp = explainability_metrics(X, labels, feature_names=feature_names)
     row["tree_fidelity"] = exp["tree_fidelity"]
     row["tree_depth"]    = exp["tree_depth"]
@@ -586,22 +589,27 @@ def visualize_dataset(dataset_name, output_dir=None, verbose=True):
     labels_per_algo["bounded_rep"] = bounded_representation_clustering(
         X, sensitive, k, random_state=RANDOM_STATE
     )
+    _p_global = float(sensitive.mean())
+    _alpha = max(0.0, _p_global - 0.15)
+    _beta  = min(1.0, _p_global + 0.15)
     metric_rows.append(_evaluate_for_plot(
         "bounded_rep", X, labels_per_algo["bounded_rep"],
         sensitive, feature_names, p, q,
+        alpha=_alpha, beta=_beta,
     ))
     if verbose: print(f"done ({time.time()-t:.1f}s)")
 
-    # ── Cost of Fairness: SSE_algo / SSE_kmeans_baseline ─────────────────────
+    # ── Cost of Fairness: PAM_cost_algo / PAM_cost_kmeans_baseline ──────────
     # Reference: Chierichetti et al. (2017) §4; Bera et al. (2019) Theorem 1.
-    # Measures quality cost incurred to achieve fairness.
-    # Value = 1.0 for baseline; > 1.0 means fairness costs SSE quality.
-    baseline_sse = next(
-        (r["sse"] for r in metric_rows if r["model"] == "kmeans_baseline"), None
+    # PAM cost uses linear distances — same metric family as k-median objective
+    # (OPT_fair / OPT_unconstrained). Value = 1.0 for baseline; > 1.0 = fairness
+    # costs clustering quality.
+    baseline_pam = next(
+        (r["pam_cost"] for r in metric_rows if r["model"] == "kmeans_baseline"), None
     )
     for row in metric_rows:
-        if baseline_sse and baseline_sse > 0:
-            row["cost_of_fairness"] = row["sse"] / baseline_sse
+        if baseline_pam and baseline_pam > 0:
+            row["cost_of_fairness"] = row["pam_cost"] / baseline_pam
         else:
             row["cost_of_fairness"] = float("nan")
 

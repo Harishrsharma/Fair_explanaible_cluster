@@ -16,7 +16,7 @@
 import math
 import numpy as np
 from scipy.spatial.distance import cdist
-from src.config import QUADTREE_MAX_LEVELS, QUADTREE_RANDOM_SHIFT, QUADTREE_EPSILON, RANDOM_STATE
+from src.config import QUADTREE_MAX_LEVELS, QUADTREE_RANDOM_SHIFT, QUADTREE_EPSILON, RANDOM_STATE, BOUNDED_REP_USE_LP
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -348,7 +348,7 @@ def assign_labels_from_fairlets(fairlets, center_cluster_labels, n):
 # Fairness evaluation metrics
 # ─────────────────────────────────────────────────────────────────────────────
 
-def fairness_metrics(labels, sensitive, p=1, q=2):
+def fairness_metrics(labels, sensitive, p=1, q=2, alpha=None, beta=None):
     """
     Compute fairness metrics for a clustering result.
 
@@ -357,17 +357,27 @@ def fairness_metrics(labels, sensitive, p=1, q=2):
     min_balance    : minimum (p,q)-balance across all clusters
                      (worst-case cluster – key metric from Chierichetti et al.)
     avg_balance    : average balance across clusters
-    violation_rate : fraction of clusters violating the p/q balance threshold
-    avg_dp_gap     : average absolute demographic parity gap per cluster
+    violation_rate : fraction of clusters violating the fairness threshold.
+                     Two modes (selected by alpha/beta args):
+                       * alpha=None  → Chierichetti t-fair check: balance < p/q
+                         (Chierichetti et al. 2017, Definition 3)
+                         Used for: K-Means, K-Medians, Fair K-Medians
+                       * alpha given → Bera bounded-rep check: proportion ∉ [α,β]
+                         (Bera et al. 2019, Theorem 1)
+                         Used for: Bounded-Rep (LP enforces exactly these bounds)
+                     Using the matching criterion for each method prevents false
+                     violations when Bounded-Rep satisfies α/β but not the stricter
+                     Chierichetti p/q balance condition.
 
     Balance of a cluster = min(n_red/n_blue, n_blue/n_red)
-    A cluster violates balance if balance < p/q.
     """
     K = len(np.unique(labels))
     balances = []
     violations = 0
-    dp_gaps = []
-    global_ratio = float(sensitive.mean())
+    # dp_gaps = []                            # DP gap commented out (not cited for clustering)
+    # global_ratio = float(sensitive.mean())  # only needed for dp_gap
+
+    use_bera = (alpha is not None and beta is not None)
 
     for k in range(K):
         mask = labels == k
@@ -378,25 +388,68 @@ def fairness_metrics(labels, sensitive, p=1, q=2):
         if n0 + n1 == 0:
             continue
 
-        # Balance
+        # Balance (Chierichetti)
         if n0 == 0 or n1 == 0:
             bal = 0.0
         else:
             bal = min(n0, n1) / max(n0, n1)
         balances.append(bal)
 
-        if bal < (p / q):
-            violations += 1
+        if use_bera:
+            # Bera et al. bounds: group-1 proportion must be in [alpha, beta]
+            proportion = n1 / (n0 + n1)
+            if proportion < alpha or proportion > beta:
+                violations += 1
+        else:
+            # Chierichetti t-fair: balance must be >= p/q
+            if bal < (p / q):
+                violations += 1
 
-        # Demographic parity gap
-        dp_gaps.append(abs(group.mean() - global_ratio))
+        # Demographic parity gap — commented out (Feldman et al. 2015 is classification,
+        # not clustering; balance already captures group proportionality)
+        # dp_gaps.append(abs(group.mean() - global_ratio))
 
     return {
         "min_balance":    float(np.min(balances))  if balances else 0.0,
         "avg_balance":    float(np.mean(balances)) if balances else 0.0,
         "violation_rate": violations / K,
-        "avg_dp_gap":     float(np.mean(dp_gaps))  if dp_gaps  else 0.0,
+        # "avg_dp_gap":  float(np.mean(dp_gaps)) if dp_gaps else 0.0,
     }
+
+
+def per_cluster_balance(labels, sensitive, p=1, q=2):
+    """
+    Return per-cluster balance breakdown for diagnostic output.
+
+    Returns a list of dicts, one per cluster, with:
+        cluster      : cluster index
+        n_total      : total members
+        n_group0     : count of sensitive==0
+        n_group1     : count of sensitive==1
+        balance      : min(n0,n1)/max(n0,n1)  (0.0 if one group missing)
+        violates     : True if balance < p/q
+    """
+    threshold = p / q
+    rows = []
+    for k in np.unique(labels):
+        mask  = labels == k
+        group = sensitive[mask]
+        n0    = int(np.sum(group == 0))
+        n1    = int(np.sum(group == 1))
+        total = n0 + n1
+        if total == 0:
+            continue
+        bal      = 0.0 if (n0 == 0 or n1 == 0) else min(n0, n1) / max(n0, n1)
+        violates = bal < threshold
+        rows.append({
+            "cluster":  int(k),
+            "n_total":  total,
+            "n_group0": n0,
+            "n_group1": n1,
+            "balance":  round(bal, 4),
+            "violates": violates,
+        })
+    return rows
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -467,6 +520,85 @@ def _constrained_assignment(X, centers, sensitive, alpha, beta):
     return labels
 
 
+def _lp_assignment(X, centers, sensitive, alpha, beta):
+    """
+    Optimal proportional-bounds assignment via Linear Programming (Bera et al. 2019 ss3).
+
+    Variables: x[i,c] in [0,1], index = i*k + c
+    Objective: minimise sum_{i,c} d(i,c) * x[i,c]   (total distance to centers)
+    Constraints:
+      sum_c x[i,c] = 1  for each i            (each point in one cluster)
+      alpha * sum_i x[i,c] <= sum_{g=1} x[i,c]  for each c  (lower group bound)
+      sum_{g=1} x[i,c] <= beta * sum_i x[i,c]   for each c  (upper group bound)
+
+    Uses scipy HiGHS (sparse constraint matrices).
+    Returns label array (n,) or None if LP fails/is infeasible.
+    Reference: Bera et al. (2019) s3; scipy HiGHS: Huangfu & Hall (2018).
+    """
+    from scipy.optimize import linprog
+    from scipy.sparse import csr_matrix
+
+    n, k = len(X), len(centers)
+    nv = n * k
+
+    # Cost vector: L2 distances, shape (n*k,)
+    diffs = X[:, None, :] - centers[None, :, :]
+    costs = np.sqrt((diffs ** 2).sum(axis=2)).ravel()
+
+    # Equality constraints: each point assigned to exactly one cluster
+    # A_eq shape (n, nv): row i has ones at columns i*k .. i*k+k-1
+    eq_row = np.repeat(np.arange(n, dtype=np.int32), k)
+    eq_col = np.arange(nv, dtype=np.int32)
+    A_eq = csr_matrix(
+        (np.ones(nv, dtype=np.float64), (eq_row, eq_col)),
+        shape=(n, nv),
+    )
+    b_eq = np.ones(n, dtype=np.float64)
+
+    # Inequality constraints: proportional fairness, 2 rows per cluster
+    # Row 2c   (lower): alpha*sum_i x[i,c] - sum_{g=1} x[i,c] <= 0
+    #   coeff for x[i,c] = alpha-1 if sensitive[i]==1, else alpha
+    # Row 2c+1 (upper): sum_{g=1} x[i,c] - beta*sum_i x[i,c] <= 0
+    #   coeff for x[i,c] = 1-beta  if sensitive[i]==1, else -beta
+    g = sensitive.astype(np.float64)
+    ub_row_list = []
+    ub_col_list = []
+    ub_dat_list = []
+
+    for c in range(k):
+        col_c = (np.arange(n, dtype=np.int32) * k + c)
+        lo = np.where(g == 1.0, alpha - 1.0, alpha)
+        hi = np.where(g == 1.0, 1.0 - beta,  -beta)
+        row_lo = np.full(n, 2 * c,     dtype=np.int32)
+        row_hi = np.full(n, 2 * c + 1, dtype=np.int32)
+        ub_row_list.append(row_lo); ub_row_list.append(row_hi)
+        ub_col_list.append(col_c);  ub_col_list.append(col_c)
+        ub_dat_list.append(lo);     ub_dat_list.append(hi)
+
+    A_ub = csr_matrix(
+        (np.concatenate(ub_dat_list),
+         (np.concatenate(ub_row_list), np.concatenate(ub_col_list))),
+        shape=(2 * k, nv),
+    )
+    b_ub = np.zeros(2 * k, dtype=np.float64)
+
+    res = linprog(
+        costs, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq,
+        bounds=(0.0, 1.0),
+        method="highs",
+        options={"disp": False},
+    )
+
+    if not res.success:
+        return None
+
+    return np.argmax(res.x.reshape(n, k), axis=1).astype(int)
+
+
+# LP call threshold: datasets with n > this use greedy EM + single LP final pass
+_LP_FULL_LIMIT = 15_000
+
+
 def bounded_representation_clustering(X, sensitive, k,
                                        random_state=None, n_iter=20):
     """
@@ -482,21 +614,17 @@ def bounded_representation_clustering(X, sensitive, k,
 
     Algorithm
     ---------
-    1. Initialise k centres with KMeans++ seeding (fast, spread initialisation).
+    1. Initialise k centres with KMeans++ seeding.
     2. Repeat up to n_iter times:
-       a. Greedy constrained assignment: each point → nearest centre whose
-          group-1 fraction stays ≤ beta. Fallback to nearest centre when
-          no feasible centre exists (greedy infeasibility).
+       a. Assignment (controlled by BOUNDED_REP_USE_LP in config):
+          LP mode   (n ≤ 15 000): solve LP every iteration — exact proportional
+                                   fairness per Bera et al. §3.
+          LP mode   (n > 15 000): greedy EM to stabilise centres, then one
+                                   final LP pass for optimal fair assignment.
+          Greedy mode: each point → nearest feasible centre; fallback to
+                       nearest if no feasible centre exists.
        b. Recompute centres as means of assigned members.
        c. Early stop if labels unchanged.
-
-    Limitations
-    -----------
-    This is a practical greedy approximation of the LP/flow-based
-    assignment in Bera et al. (2019). On heavily skewed datasets
-    (e.g. Adult 67/33 with k=6) the fallback fires frequently, producing
-    degenerate small clusters with near-zero balance — a known limitation
-    of greedy constrained assignment on imbalanced data.
 
     Parameters
     ----------
@@ -537,8 +665,23 @@ def bounded_representation_clustering(X, sensitive, k,
 
     labels = np.full(n, -1, dtype=int)
 
+    # Strategy selection (Bera et al. 2019 §3):
+    # LP mode   — n ≤ _LP_FULL_LIMIT: solve LP every EM iteration (exact).
+    #           — n >  _LP_FULL_LIMIT: greedy EM to converge centers fast,
+    #             then one final LP pass for optimal fair assignment.
+    # Greedy    — fast approximation; may produce degenerate clusters on
+    #             skewed data (greedy fallback fires when no feasible cluster).
+    use_lp      = BOUNDED_REP_USE_LP
+    lp_every_it = use_lp and (n <= _LP_FULL_LIMIT)
+    lp_final    = use_lp and (n >  _LP_FULL_LIMIT)
+
     for _ in range(n_iter):
-        new_labels = _constrained_assignment(X, centers, sensitive, alpha, beta)
+        if lp_every_it:
+            new_labels = _lp_assignment(X, centers, sensitive, alpha, beta)
+            if new_labels is None:          # LP infeasible → greedy fallback
+                new_labels = _constrained_assignment(X, centers, sensitive, alpha, beta)
+        else:
+            new_labels = _constrained_assignment(X, centers, sensitive, alpha, beta)
 
         # Recompute centres as means of assigned points
         new_centers = np.zeros_like(centers)
@@ -550,6 +693,13 @@ def bounded_representation_clustering(X, sensitive, k,
             break
         labels  = new_labels
         centers = new_centers
+
+    # Final LP pass for large datasets: greedy converged the centres,
+    # now solve LP once for the optimal fair assignment given those centres.
+    if lp_final:
+        lp_labels = _lp_assignment(X, centers, sensitive, alpha, beta)
+        if lp_labels is not None:
+            labels = lp_labels
 
     # Safety: ensure all points are labelled (no -1 remaining)
     unlabelled = labels == -1

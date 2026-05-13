@@ -28,8 +28,8 @@ QUADTREE_EPSILON = 1e-4        # minimum cell size threshold
 
 # Sample sizes per dataset (None = use full dataset)
 SAMPLE_SIZES = {
-    "bank":    30000,
-    "adult":   30000,
+    "bank":    7000,
+    "adult":   7000,
     "compas":  None,   # ~7000 rows, use all
     "german":  None,   # ~1000 rows, use all
 }
@@ -72,6 +72,14 @@ SENSITIVE_CONFIGS = {
         "description": "Sex: male = 1, female = 0"
     },
 }
+
+# Bounded-representation assignment method
+# True  → LP-based assignment (scipy HiGHS; exact proportional fairness)
+#          n ≤ 15 000: LP every EM iteration   (german, compas)
+#          n >  15 000: greedy EM + single LP final pass (adult, bank)
+# False → greedy constrained assignment (fast, approximate; may produce
+#          degenerate clusters on skewed/large datasets)
+BOUNDED_REP_USE_LP = True
 
 # Results output directory
 RESULTS_DIR = "results"

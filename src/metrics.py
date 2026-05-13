@@ -67,12 +67,16 @@ def clustering_metrics(X, labels):
 
     n, d = X.shape
 
-    # ── Silhouette in original space (subsample large datasets for speed) ──
-    if n > 10000:
+    # ── Silhouette in original space ─────────────────────────────────────
+    # Subsample when n > 3000: full n×n distance matrix at 7000 pts = 374 MiB,
+    # which OOMs on machines with <500 MB free RAM.  3000-pt sample = 72 MiB.
+    _SIL_MAX = 3000
+    if n > _SIL_MAX:
         rng = np.random.default_rng(42)
-        idx = rng.choice(n, 10000, replace=False)
+        idx = rng.choice(n, _SIL_MAX, replace=False)
         sil_raw = float(silhouette_score(X[idx], labels[idx]))
     else:
+        idx = None
         sil_raw = float(silhouette_score(X, labels))
 
     # ── Silhouette in PCA-reduced space ───────────────────────────────────
@@ -86,7 +90,7 @@ def clustering_metrics(X, labels):
     else:
         X_pca = X   # already low-dimensional – no reduction needed
 
-    if n > 10000:
+    if idx is not None:
         sil_pca = float(silhouette_score(X_pca[idx], labels[idx]))
     else:
         sil_pca = float(silhouette_score(X_pca, labels))
