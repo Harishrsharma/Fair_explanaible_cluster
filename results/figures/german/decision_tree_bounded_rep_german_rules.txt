@@ -1,0 +1,49 @@
+Decision-Tree Rules — bounded_rep on german
+Depth: 4 | Rules (leaves): 16 | Explanation accuracy: 86.7%
+----------------------------------------------------------------------
+|--- existing-credits <= 0.16
+|   |--- age <= -0.00
+|   |   |--- credit-amount <= 0.35
+|   |   |   |--- age <= -0.18
+|   |   |   |   |--- weights: [2.00, 6.00, 4.00, 0.00, 276.00] class: 4
+|   |   |   |--- age >  -0.18
+|   |   |   |   |--- weights: [1.00, 10.00, 1.00, 0.00, 22.00] class: 4
+|   |   |--- credit-amount >  0.35
+|   |   |   |--- installment-rate <= -0.42
+|   |   |   |   |--- weights: [12.00, 0.00, 25.00, 0.00, 4.00] class: 2
+|   |   |   |--- installment-rate >  -0.42
+|   |   |   |   |--- weights: [19.00, 2.00, 0.00, 0.00, 9.00] class: 0
+|   |--- age >  -0.00
+|   |   |--- credit-amount <= 0.70
+|   |   |   |--- residence-since <= -0.31
+|   |   |   |   |--- weights: [2.00, 11.00, 2.00, 0.00, 37.00] class: 4
+|   |   |   |--- residence-since >  -0.31
+|   |   |   |   |--- weights: [2.00, 125.00, 3.00, 0.00, 9.00] class: 1
+|   |   |--- credit-amount >  0.70
+|   |   |   |--- duration <= 1.00
+|   |   |   |   |--- weights: [5.00, 6.00, 10.00, 0.00, 0.00] class: 2
+|   |   |   |--- duration >  1.00
+|   |   |   |   |--- weights: [27.00, 0.00, 1.00, 0.00, 0.00] class: 0
+|--- existing-credits >  0.16
+|   |--- credit-amount <= 0.71
+|   |   |--- age <= 1.14
+|   |   |   |--- duration <= 2.12
+|   |   |   |   |--- weights: [0.00, 3.00, 20.00, 216.00, 1.00] class: 3
+|   |   |   |--- duration >  2.12
+|   |   |   |   |--- weights: [4.00, 0.00, 0.00, 0.00, 0.00] class: 0
+|   |   |--- age >  1.14
+|   |   |   |--- existing-credits <= 1.89
+|   |   |   |   |--- weights: [0.00, 30.00, 0.00, 6.00, 0.00] class: 1
+|   |   |   |--- existing-credits >  1.89
+|   |   |   |   |--- weights: [0.00, 0.00, 0.00, 10.00, 0.00] class: 3
+|   |--- credit-amount >  0.71
+|   |   |--- installment-rate <= 0.47
+|   |   |   |--- duration <= 1.87
+|   |   |   |   |--- weights: [3.00, 2.00, 40.00, 3.00, 0.00] class: 2
+|   |   |   |--- duration >  1.87
+|   |   |   |   |--- weights: [8.00, 0.00, 3.00, 0.00, 0.00] class: 0
+|   |   |--- installment-rate >  0.47
+|   |   |   |--- duration <= 1.00
+|   |   |   |   |--- weights: [0.00, 0.00, 0.00, 5.00, 0.00] class: 3
+|   |   |   |--- duration >  1.00
+|   |   |   |   |--- weights: [13.00, 0.00, 0.00, 0.00, 0.00] class: 0

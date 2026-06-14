@@ -1,0 +1,46 @@
+Decision-Tree Rules — kmedians_baseline on compas
+Depth: 4 | Rules (leaves): 15 | Explanation accuracy: 99.1%
+----------------------------------------------------------------------
+|--- c_charge_degree_M <= 0.50
+|   |--- age <= -0.86
+|   |   |--- juv_other_count <= 2.95
+|   |   |   |--- juv_misd_count <= 8.86
+|   |   |   |   |--- weights: [0.00, 0.00, 3.00, 900.00] class: 3
+|   |   |   |--- juv_misd_count >  8.86
+|   |   |   |   |--- weights: [0.00, 0.00, 2.00, 0.00] class: 2
+|   |   |--- juv_other_count >  2.95
+|   |   |   |--- juv_misd_count <= 0.82
+|   |   |   |   |--- weights: [0.00, 0.00, 3.00, 44.00] class: 3
+|   |   |   |--- juv_misd_count >  0.82
+|   |   |   |   |--- weights: [0.00, 0.00, 16.00, 0.00] class: 2
+|   |--- age >  -0.86
+|   |   |--- juv_other_count <= 2.95
+|   |   |   |--- juv_other_count <= 0.83
+|   |   |   |   |--- weights: [0.00, 2852.00, 0.00, 0.00] class: 1
+|   |   |   |--- juv_other_count >  0.83
+|   |   |   |   |--- weights: [0.00, 79.00, 32.00, 0.00] class: 1
+|   |   |--- juv_other_count >  2.95
+|   |   |   |--- weights: [0.00, 0.00, 39.00, 0.00] class: 2
+|--- c_charge_degree_M >  0.50
+|   |--- age <= -0.86
+|   |   |--- juv_other_count <= 2.95
+|   |   |   |--- priors_count <= 0.69
+|   |   |   |   |--- weights: [0.00, 0.00, 0.00, 351.00] class: 3
+|   |   |   |--- priors_count >  0.69
+|   |   |   |   |--- weights: [0.00, 0.00, 1.00, 9.00] class: 3
+|   |   |--- juv_other_count >  2.95
+|   |   |   |--- juv_misd_count <= 0.82
+|   |   |   |   |--- weights: [0.00, 0.00, 0.00, 14.00] class: 3
+|   |   |   |--- juv_misd_count >  0.82
+|   |   |   |   |--- weights: [0.00, 0.00, 4.00, 0.00] class: 2
+|   |--- age >  -0.86
+|   |   |--- juv_other_count <= 2.95
+|   |   |   |--- juv_misd_count <= 0.82
+|   |   |   |   |--- weights: [1755.00, 0.00, 0.00, 0.00] class: 0
+|   |   |   |--- juv_misd_count >  0.82
+|   |   |   |   |--- weights: [40.00, 0.00, 13.00, 0.00] class: 0
+|   |   |--- juv_other_count >  2.95
+|   |   |   |--- priors_count <= 0.05
+|   |   |   |   |--- weights: [3.00, 0.00, 1.00, 0.00] class: 0
+|   |   |   |--- priors_count >  0.05
+|   |   |   |   |--- weights: [0.00, 0.00, 11.00, 0.00] class: 2

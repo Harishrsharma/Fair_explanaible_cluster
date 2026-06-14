@@ -1,0 +1,49 @@
+Decision-Tree Rules — fair_kmedians on compas
+Depth: 4 | Rules (leaves): 16 | Explanation accuracy: 62.3%
+----------------------------------------------------------------------
+|--- c_charge_degree_M <= 0.50
+|   |--- sex_Male <= 0.50
+|   |   |--- age <= -1.03
+|   |   |   |--- juv_other_count <= 2.95
+|   |   |   |   |--- weights: [26.00, 7.00, 25.00, 14.00] class: 0
+|   |   |   |--- juv_other_count >  2.95
+|   |   |   |   |--- weights: [0.00, 0.00, 2.00, 0.00] class: 2
+|   |   |--- age >  -1.03
+|   |   |   |--- priors_count <= 1.53
+|   |   |   |   |--- weights: [109.00, 60.00, 325.00, 82.00] class: 2
+|   |   |   |--- priors_count >  1.53
+|   |   |   |   |--- weights: [9.00, 12.00, 11.00, 2.00] class: 1
+|   |--- sex_Male >  0.50
+|   |   |--- priors_count <= 0.05
+|   |   |   |--- age <= 0.17
+|   |   |   |   |--- weights: [1015.00, 203.00, 87.00, 168.00] class: 0
+|   |   |   |--- age >  0.17
+|   |   |   |   |--- weights: [224.00, 317.00, 36.00, 61.00] class: 1
+|   |   |--- priors_count >  0.05
+|   |   |   |--- age <= -0.51
+|   |   |   |   |--- weights: [118.00, 172.00, 25.00, 42.00] class: 1
+|   |   |   |--- age >  -0.51
+|   |   |   |   |--- weights: [125.00, 513.00, 55.00, 125.00] class: 1
+|--- c_charge_degree_M >  0.50
+|   |--- sex_Male <= 0.50
+|   |   |--- priors_count <= -0.37
+|   |   |   |--- age <= 0.34
+|   |   |   |   |--- weights: [61.00, 29.00, 21.00, 145.00] class: 3
+|   |   |   |--- age >  0.34
+|   |   |   |   |--- weights: [13.00, 16.00, 4.00, 94.00] class: 3
+|   |   |--- priors_count >  -0.37
+|   |   |   |--- priors_count <= 0.48
+|   |   |   |   |--- weights: [13.00, 11.00, 47.00, 9.00] class: 2
+|   |   |   |--- priors_count >  0.48
+|   |   |   |   |--- weights: [7.00, 2.00, 10.00, 9.00] class: 2
+|   |--- sex_Male >  0.50
+|   |   |--- juv_misd_count <= 0.82
+|   |   |   |--- juv_fel_count <= 0.95
+|   |   |   |   |--- weights: [228.00, 176.00, 75.00, 1121.00] class: 3
+|   |   |   |--- juv_fel_count >  0.95
+|   |   |   |   |--- weights: [6.00, 10.00, 4.00, 13.00] class: 3
+|   |   |--- juv_misd_count >  0.82
+|   |   |   |--- priors_count <= 3.00
+|   |   |   |   |--- weights: [19.00, 14.00, 6.00, 29.00] class: 3
+|   |   |   |--- priors_count >  3.00
+|   |   |   |   |--- weights: [0.00, 7.00, 0.00, 3.00] class: 1

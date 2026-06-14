@@ -1,0 +1,37 @@
+Decision-Tree Rules — bounded_rep on adult
+Depth: 4 | Rules (leaves): 12 | Explanation accuracy: 83.5%
+----------------------------------------------------------------------
+|--- educational-num <= 0.54
+|   |--- marital-status_Never-married <= 0.50
+|   |   |--- age <= 0.75
+|   |   |   |--- relationship_Husband <= 0.50
+|   |   |   |   |--- weights: [27.00, 31.00, 429.00, 0.00, 318.00, 162.00] class: 2
+|   |   |   |--- relationship_Husband >  0.50
+|   |   |   |   |--- weights: [3.00, 66.00, 1169.00, 4.00, 35.00, 58.00] class: 2
+|   |   |--- age >  0.75
+|   |   |   |--- hours-per-week <= 0.71
+|   |   |   |   |--- weights: [1.00, 35.00, 52.00, 0.00, 0.00, 785.00] class: 5
+|   |   |   |--- hours-per-week >  0.71
+|   |   |   |   |--- weights: [0.00, 9.00, 117.00, 2.00, 0.00, 58.00] class: 2
+|   |--- marital-status_Never-married >  0.50
+|   |   |--- age <= 0.45
+|   |   |   |--- capital-loss <= 2.21
+|   |   |   |   |--- weights: [11.00, 0.00, 80.00, 1.00, 1369.00, 8.00] class: 4
+|   |   |   |--- capital-loss >  2.21
+|   |   |   |   |--- weights: [0.00, 47.00, 0.00, 0.00, 0.00, 0.00] class: 1
+|   |   |--- age >  0.45
+|   |   |   |--- hours-per-week <= 1.25
+|   |   |   |   |--- weights: [2.00, 2.00, 0.00, 0.00, 7.00, 76.00] class: 5
+|   |   |   |--- hours-per-week >  1.25
+|   |   |   |   |--- weights: [0.00, 0.00, 4.00, 0.00, 0.00, 0.00] class: 2
+|--- educational-num >  0.54
+|   |--- capital-loss <= 2.27
+|   |   |--- capital-gain <= 8.37
+|   |   |   |--- hours-per-week <= -0.70
+|   |   |   |   |--- weights: [113.00, 0.00, 0.00, 0.00, 76.00, 23.00] class: 0
+|   |   |   |--- hours-per-week >  -0.70
+|   |   |   |   |--- weights: [1571.00, 0.00, 14.00, 2.00, 57.00, 11.00] class: 0
+|   |   |--- capital-gain >  8.37
+|   |   |   |--- weights: [0.00, 0.00, 0.00, 36.00, 0.00, 0.00] class: 3
+|   |--- capital-loss >  2.27
+|   |   |--- weights: [0.00, 129.00, 0.00, 0.00, 0.00, 0.00] class: 1

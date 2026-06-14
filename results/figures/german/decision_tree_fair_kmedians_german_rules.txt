@@ -1,0 +1,49 @@
+Decision-Tree Rules — fair_kmedians on german
+Depth: 4 | Rules (leaves): 16 | Explanation accuracy: 55.8%
+----------------------------------------------------------------------
+|--- existing-credits <= 0.16
+|   |--- credit-amount <= -0.14
+|   |   |--- duration <= -0.03
+|   |   |   |--- property_real estate <= 0.50
+|   |   |   |   |--- weights: [51.00, 8.00, 29.00, 76.00, 4.00] class: 3
+|   |   |   |--- property_real estate >  0.50
+|   |   |   |   |--- weights: [65.00, 5.00, 15.00, 30.00, 2.00] class: 0
+|   |   |--- duration >  -0.03
+|   |   |   |--- property_real estate <= 0.50
+|   |   |   |   |--- weights: [1.00, 14.00, 28.00, 25.00, 5.00] class: 2
+|   |   |   |--- property_real estate >  0.50
+|   |   |   |   |--- weights: [8.00, 4.00, 6.00, 5.00, 4.00] class: 0
+|   |--- credit-amount >  -0.14
+|   |   |--- credit-amount <= 0.93
+|   |   |   |--- duration <= -0.53
+|   |   |   |   |--- weights: [13.00, 2.00, 9.00, 4.00, 1.00] class: 0
+|   |   |   |--- duration >  -0.53
+|   |   |   |   |--- weights: [11.00, 8.00, 80.00, 28.00, 2.00] class: 2
+|   |   |--- credit-amount >  0.93
+|   |   |   |--- telephone_none <= 0.50
+|   |   |   |   |--- weights: [2.00, 7.00, 47.00, 3.00, 1.00] class: 2
+|   |   |   |--- telephone_none >  0.50
+|   |   |   |   |--- weights: [0.00, 0.00, 30.00, 0.00, 0.00] class: 2
+|--- existing-credits >  0.16
+|   |--- duration <= -0.16
+|   |   |--- age <= 0.52
+|   |   |   |--- credit-amount <= 0.11
+|   |   |   |   |--- weights: [6.00, 17.00, 3.00, 8.00, 76.00] class: 4
+|   |   |   |--- credit-amount >  0.11
+|   |   |   |   |--- weights: [3.00, 6.00, 5.00, 2.00, 2.00] class: 1
+|   |   |--- age >  0.52
+|   |   |   |--- age <= 0.79
+|   |   |   |   |--- weights: [6.00, 0.00, 1.00, 3.00, 2.00] class: 0
+|   |   |   |--- age >  0.79
+|   |   |   |   |--- weights: [6.00, 21.00, 4.00, 8.00, 11.00] class: 1
+|   |--- duration >  -0.16
+|   |   |--- credit-amount <= 0.77
+|   |   |   |--- purpose_car (new) <= 0.50
+|   |   |   |   |--- weights: [11.00, 37.00, 1.00, 7.00, 30.00] class: 1
+|   |   |   |--- purpose_car (new) >  0.50
+|   |   |   |   |--- weights: [0.00, 20.00, 0.00, 2.00, 4.00] class: 1
+|   |   |--- credit-amount >  0.77
+|   |   |   |--- credit-amount <= 1.70
+|   |   |   |   |--- weights: [0.00, 35.00, 1.00, 0.00, 4.00] class: 1
+|   |   |   |--- credit-amount >  1.70
+|   |   |   |   |--- weights: [0.00, 10.00, 9.00, 2.00, 4.00] class: 1

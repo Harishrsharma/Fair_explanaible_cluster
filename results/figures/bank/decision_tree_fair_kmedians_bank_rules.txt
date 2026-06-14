@@ -1,0 +1,49 @@
+Decision-Tree Rules — fair_kmedians on bank
+Depth: 4 | Rules (leaves): 16 | Explanation accuracy: 69.2%
+----------------------------------------------------------------------
+|--- pdays <= -0.24
+|   |--- housing_no <= 0.50
+|   |   |--- month_may <= 0.50
+|   |   |   |--- education_secondary <= 0.50
+|   |   |   |   |--- weights: [330.00, 1.00, 380.00, 0.00] class: 2
+|   |   |   |--- education_secondary >  0.50
+|   |   |   |   |--- weights: [240.00, 0.00, 586.00, 0.00] class: 2
+|   |   |--- month_may >  0.50
+|   |   |   |--- day <= 1.16
+|   |   |   |   |--- weights: [265.00, 1.00, 924.00, 1.00] class: 2
+|   |   |   |--- day >  1.16
+|   |   |   |   |--- weights: [115.00, 0.00, 238.00, 0.00] class: 2
+|   |--- housing_no >  0.50
+|   |   |--- balance <= 3.45
+|   |   |   |--- balance <= 2.95
+|   |   |   |   |--- weights: [1725.00, 1.00, 907.00, 0.00] class: 0
+|   |   |   |--- balance >  2.95
+|   |   |   |   |--- weights: [4.00, 0.00, 14.00, 0.00] class: 2
+|   |   |--- balance >  3.45
+|   |   |   |--- balance <= 13.94
+|   |   |   |   |--- weights: [35.00, 0.00, 2.00, 0.00] class: 0
+|   |   |   |--- balance >  13.94
+|   |   |   |   |--- weights: [0.00, 0.00, 1.00, 0.00] class: 2
+|--- pdays >  -0.24
+|   |--- pdays <= 1.89
+|   |   |--- housing_yes <= 0.50
+|   |   |   |--- balance <= 0.78
+|   |   |   |   |--- weights: [17.00, 245.00, 4.00, 61.00] class: 1
+|   |   |   |--- balance >  0.78
+|   |   |   |   |--- weights: [1.00, 30.00, 2.00, 24.00] class: 1
+|   |   |--- housing_yes >  0.50
+|   |   |   |--- education_tertiary <= 0.50
+|   |   |   |   |--- weights: [4.00, 61.00, 8.00, 115.00] class: 3
+|   |   |   |--- education_tertiary >  0.50
+|   |   |   |   |--- weights: [3.00, 69.00, 5.00, 30.00] class: 1
+|   |--- pdays >  1.89
+|   |   |--- pdays <= 4.03
+|   |   |   |--- balance <= 3.38
+|   |   |   |   |--- weights: [0.00, 50.00, 1.00, 466.00] class: 3
+|   |   |   |--- balance >  3.38
+|   |   |   |   |--- weights: [1.00, 6.00, 0.00, 2.00] class: 1
+|   |   |--- pdays >  4.03
+|   |   |   |--- previous <= 3.57
+|   |   |   |   |--- weights: [9.00, 1.00, 11.00, 1.00] class: 2
+|   |   |   |--- previous >  3.57
+|   |   |   |   |--- weights: [0.00, 1.00, 0.00, 2.00] class: 3

@@ -1,0 +1,49 @@
+Decision-Tree Rules — kmedians_baseline on german
+Depth: 4 | Rules (leaves): 16 | Explanation accuracy: 67.8%
+----------------------------------------------------------------------
+|--- telephone_none <= 0.50
+|   |--- credit-history_critical account <= 0.50
+|   |   |--- credit-amount <= 0.18
+|   |   |   |--- installment-rate <= -0.42
+|   |   |   |   |--- weights: [12.00, 0.00, 1.00, 29.00, 2.00] class: 3
+|   |   |   |--- installment-rate >  -0.42
+|   |   |   |   |--- weights: [8.00, 36.00, 35.00, 9.00, 27.00] class: 1
+|   |   |--- credit-amount >  0.18
+|   |   |   |--- existing-credits <= 0.16
+|   |   |   |   |--- weights: [72.00, 3.00, 2.00, 3.00, 1.00] class: 0
+|   |   |   |--- existing-credits >  0.16
+|   |   |   |   |--- weights: [21.00, 1.00, 13.00, 0.00, 1.00] class: 0
+|   |--- credit-history_critical account >  0.50
+|   |   |--- credit-amount <= 0.90
+|   |   |   |--- employment-since_1<= < 4 years <= 0.50
+|   |   |   |   |--- weights: [0.00, 0.00, 75.00, 1.00, 3.00] class: 2
+|   |   |   |--- employment-since_1<= < 4 years >  0.50
+|   |   |   |   |--- weights: [3.00, 0.00, 15.00, 1.00, 4.00] class: 2
+|   |   |--- credit-amount >  0.90
+|   |   |   |--- residence-since <= 0.59
+|   |   |   |   |--- weights: [9.00, 0.00, 3.00, 0.00, 0.00] class: 0
+|   |   |   |--- residence-since >  0.59
+|   |   |   |   |--- weights: [1.00, 0.00, 13.00, 0.00, 0.00] class: 2
+|--- telephone_none >  0.50
+|   |--- installment-rate <= 0.47
+|   |   |--- checking-account_<0 DM <= 0.50
+|   |   |   |--- credit-history_existing credits paid bac <= 0.50
+|   |   |   |   |--- weights: [14.00, 1.00, 11.00, 31.00, 46.00] class: 4
+|   |   |   |--- credit-history_existing credits paid bac >  0.50
+|   |   |   |   |--- weights: [6.00, 4.00, 0.00, 96.00, 15.00] class: 3
+|   |   |--- checking-account_<0 DM >  0.50
+|   |   |   |--- residence-since <= 0.59
+|   |   |   |   |--- weights: [4.00, 8.00, 1.00, 25.00, 7.00] class: 3
+|   |   |   |--- residence-since >  0.59
+|   |   |   |   |--- weights: [0.00, 34.00, 1.00, 6.00, 0.00] class: 1
+|   |--- installment-rate >  0.47
+|   |   |--- residence-since <= 0.59
+|   |   |   |--- checking-account_<0 DM <= 0.50
+|   |   |   |   |--- weights: [1.00, 10.00, 9.00, 13.00, 84.00] class: 4
+|   |   |   |--- checking-account_<0 DM >  0.50
+|   |   |   |   |--- weights: [0.00, 32.00, 0.00, 3.00, 17.00] class: 1
+|   |   |--- residence-since >  0.59
+|   |   |   |--- credit-history_critical account <= 0.50
+|   |   |   |   |--- weights: [0.00, 62.00, 3.00, 3.00, 8.00] class: 1
+|   |   |   |--- credit-history_critical account >  0.50
+|   |   |   |   |--- weights: [0.00, 9.00, 29.00, 0.00, 3.00] class: 2

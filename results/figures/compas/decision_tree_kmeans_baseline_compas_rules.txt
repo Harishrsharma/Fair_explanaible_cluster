@@ -1,0 +1,43 @@
+Decision-Tree Rules — kmeans_baseline on compas
+Depth: 4 | Rules (leaves): 14 | Explanation accuracy: 97.3%
+----------------------------------------------------------------------
+|--- age_cat_Greater than 45 <= 0.50
+|   |--- priors_count <= 1.32
+|   |   |--- juv_other_count <= 2.95
+|   |   |   |--- juv_misd_count <= 0.82
+|   |   |   |   |--- weights: [52.00, 0.00, 4099.00, 0.00] class: 2
+|   |   |   |--- juv_misd_count >  0.82
+|   |   |   |   |--- weights: [25.00, 0.00, 120.00, 60.00] class: 2
+|   |   |--- juv_other_count >  2.95
+|   |   |   |--- weights: [0.00, 0.00, 0.00, 104.00] class: 3
+|   |--- priors_count >  1.32
+|   |   |--- juv_other_count <= 2.95
+|   |   |   |--- juv_misd_count <= 6.85
+|   |   |   |   |--- weights: [360.00, 0.00, 8.00, 10.00] class: 0
+|   |   |   |--- juv_misd_count >  6.85
+|   |   |   |   |--- weights: [1.00, 0.00, 0.00, 10.00] class: 3
+|   |   |--- juv_other_count >  2.95
+|   |   |   |--- weights: [0.00, 0.00, 0.00, 30.00] class: 3
+|--- age_cat_Greater than 45 >  0.50
+|   |--- priors_count <= 1.95
+|   |   |--- juv_fel_count <= 0.95
+|   |   |   |--- priors_count <= 1.74
+|   |   |   |   |--- weights: [1.00, 1158.00, 0.00, 0.00] class: 1
+|   |   |   |--- priors_count >  1.74
+|   |   |   |   |--- weights: [6.00, 9.00, 0.00, 0.00] class: 1
+|   |   |--- juv_fel_count >  0.95
+|   |   |   |--- priors_count <= 0.79
+|   |   |   |   |--- weights: [0.00, 1.00, 0.00, 0.00] class: 1
+|   |   |   |--- priors_count >  0.79
+|   |   |   |   |--- weights: [4.00, 0.00, 0.00, 0.00] class: 0
+|   |--- priors_count >  1.95
+|   |   |--- priors_count <= 2.16
+|   |   |   |--- age <= 1.96
+|   |   |   |   |--- weights: [11.00, 1.00, 0.00, 0.00] class: 0
+|   |   |   |--- age >  1.96
+|   |   |   |   |--- weights: [0.00, 7.00, 0.00, 0.00] class: 1
+|   |   |--- priors_count >  2.16
+|   |   |   |--- priors_count <= 2.37
+|   |   |   |   |--- weights: [9.00, 1.00, 0.00, 0.00] class: 0
+|   |   |   |--- priors_count >  2.37
+|   |   |   |   |--- weights: [85.00, 0.00, 0.00, 0.00] class: 0

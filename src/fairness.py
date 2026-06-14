@@ -354,28 +354,25 @@ def fairness_metrics(labels, sensitive, p=1, q=2, alpha=None, beta=None):
 
     Metrics
     -------
-    min_balance    : minimum (p,q)-balance across all clusters
-                     (worst-case cluster – key metric from Chierichetti et al.)
-    avg_balance    : average balance across clusters
-    violation_rate : fraction of clusters violating the fairness threshold.
-                     Two modes (selected by alpha/beta args):
-                       * alpha=None  → Chierichetti t-fair check: balance < p/q
-                         (Chierichetti et al. 2017, Definition 3)
-                         Used for: K-Means, K-Medians, Fair K-Medians
-                       * alpha given → Bera bounded-rep check: proportion ∉ [α,β]
-                         (Bera et al. 2019, Theorem 1)
-                         Used for: Bounded-Rep (LP enforces exactly these bounds)
-                     Using the matching criterion for each method prevents false
-                     violations when Bounded-Rep satisfies α/β but not the stricter
-                     Chierichetti p/q balance condition.
-
-    Balance of a cluster = min(n_red/n_blue, n_blue/n_red)
+    min_balance      : minimum (p,q)-balance across clusters (Chierichetti 2017)
+                       balance(C) = min(n0,n1)/max(n0,n1)  — worst cluster
+    avg_balance      : average Chierichetti balance
+    min_bera_balance : minimum Bera balance across clusters (Bera et al. 2019)
+                       balance(f,i) = min(rᵢ/rᵢ(f), rᵢ(f)/rᵢ)
+                       where rᵢ = global group-1 proportion, rᵢ(f) = cluster proportion
+                       Score = 1.0 if cluster mirrors global ratio; <1 if deviation.
+                       Directly comparable to Bera et al. Fig. 1 (dotted line = 1-δ).
+    avg_bera_balance : average Bera balance
+    violation_rate   : fraction of clusters violating the fairness threshold.
+                       * alpha=None  → Chierichetti t-fair: balance < p/q
+                       * alpha given → Bera check: proportion ∉ [α,β]
     """
     K = len(np.unique(labels))
-    balances = []
-    violations = 0
-    # dp_gaps = []                            # DP gap commented out (not cited for clustering)
-    # global_ratio = float(sensitive.mean())  # only needed for dp_gap
+    balances      = []
+    bera_balances = []
+    violations    = 0
+    global_ratio  = float(sensitive.mean())   # r₁ — needed for Bera balance
+    # dp_gaps = []  # DP gap commented out (Feldman et al. 2015 is classification)
 
     use_bera = (alpha is not None and beta is not None)
 
@@ -388,32 +385,42 @@ def fairness_metrics(labels, sensitive, p=1, q=2, alpha=None, beta=None):
         if n0 + n1 == 0:
             continue
 
-        # Balance (Chierichetti)
+        # ── Chierichetti balance: min(n0,n1)/max(n0,n1) ──────────────────────
         if n0 == 0 or n1 == 0:
             bal = 0.0
         else:
             bal = min(n0, n1) / max(n0, n1)
         balances.append(bal)
 
+        # ── Bera balance: min(r₁/r₁(f), r₁(f)/r₁) ───────────────────────────
+        # Reference: Bera et al. (2019) §4 "Measurements" paragraph.
+        # Score 1.0 = cluster perfectly mirrors global group proportion.
+        # Score = (1 - δ) when cluster deviates by δ-fraction from global ratio.
+        r1_f = n1 / (n0 + n1)   # group-1 proportion in cluster
+        if global_ratio == 0 or r1_f == 0:
+            bera_bal = 0.0
+        else:
+            bera_bal = min(global_ratio / r1_f, r1_f / global_ratio)
+        bera_balances.append(bera_bal)
+
+        # ── Violation check ───────────────────────────────────────────────────
         if use_bera:
-            # Bera et al. bounds: group-1 proportion must be in [alpha, beta]
-            proportion = n1 / (n0 + n1)
+            proportion = r1_f
             if proportion < alpha or proportion > beta:
                 violations += 1
         else:
-            # Chierichetti t-fair: balance must be >= p/q
             if bal < (p / q):
                 violations += 1
 
-        # Demographic parity gap — commented out (Feldman et al. 2015 is classification,
-        # not clustering; balance already captures group proportionality)
-        # dp_gaps.append(abs(group.mean() - global_ratio))
+        # dp_gaps.append(abs(group.mean() - global_ratio))  # commented out
 
     return {
-        "min_balance":    float(np.min(balances))  if balances else 0.0,
-        "avg_balance":    float(np.mean(balances)) if balances else 0.0,
-        "violation_rate": violations / K,
-        # "avg_dp_gap":  float(np.mean(dp_gaps)) if dp_gaps else 0.0,
+        "min_balance":      float(np.min(balances))       if balances      else 0.0,
+        "avg_balance":      float(np.mean(balances))      if balances      else 0.0,
+        "min_bera_balance": float(np.min(bera_balances))  if bera_balances else 0.0,
+        "avg_bera_balance": float(np.mean(bera_balances)) if bera_balances else 0.0,
+        "violation_rate":   violations / K,
+        # "avg_dp_gap":    float(np.mean(dp_gaps)) if dp_gaps else 0.0,
     }
 
 

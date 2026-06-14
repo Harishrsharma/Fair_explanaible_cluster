@@ -1,0 +1,46 @@
+Decision-Tree Rules — fair_kmedians on adult
+Depth: 4 | Rules (leaves): 15 | Explanation accuracy: 60.7%
+----------------------------------------------------------------------
+|--- educational-num <= 0.15
+|   |--- age <= -0.38
+|   |   |--- relationship_Own-child <= 0.50
+|   |   |   |--- capital-loss <= 3.67
+|   |   |   |   |--- weights: [135.00, 324.00, 7.00, 493.00, 227.00, 2.00] class: 3
+|   |   |   |--- capital-loss >  3.67
+|   |   |   |   |--- weights: [0.00, 1.00, 0.00, 0.00, 0.00, 43.00] class: 5
+|   |   |--- relationship_Own-child >  0.50
+|   |   |   |--- capital-loss <= 3.61
+|   |   |   |   |--- weights: [26.00, 80.00, 4.00, 581.00, 41.00, 3.00] class: 3
+|   |   |   |--- capital-loss >  3.61
+|   |   |   |   |--- weights: [0.00, 1.00, 0.00, 0.00, 0.00, 17.00] class: 5
+|   |--- age >  -0.38
+|   |   |--- capital-loss <= 3.66
+|   |   |   |--- educational-num <= -0.24
+|   |   |   |   |--- weights: [260.00, 554.00, 41.00, 44.00, 936.00, 2.00] class: 4
+|   |   |   |--- educational-num >  -0.24
+|   |   |   |   |--- weights: [394.00, 90.00, 2.00, 31.00, 243.00, 1.00] class: 0
+|   |   |--- capital-loss >  3.66
+|   |   |   |--- capital-loss <= 7.74
+|   |   |   |   |--- weights: [0.00, 2.00, 0.00, 0.00, 0.00, 97.00] class: 5
+|   |   |   |--- capital-loss >  7.74
+|   |   |   |   |--- weights: [0.00, 1.00, 0.00, 0.00, 0.00, 0.00] class: 1
+|--- educational-num >  0.15
+|   |--- capital-loss <= 1.36
+|   |   |--- age <= -0.38
+|   |   |   |--- hours-per-week <= -0.70
+|   |   |   |   |--- weights: [3.00, 2.00, 18.00, 82.00, 0.00, 2.00] class: 3
+|   |   |   |--- hours-per-week >  -0.70
+|   |   |   |   |--- weights: [38.00, 20.00, 312.00, 214.00, 26.00, 11.00] class: 2
+|   |   |--- age >  -0.38
+|   |   |   |--- educational-num <= 0.54
+|   |   |   |   |--- weights: [56.00, 25.00, 94.00, 12.00, 1.00, 0.00] class: 2
+|   |   |   |--- educational-num >  0.54
+|   |   |   |   |--- weights: [62.00, 81.00, 1059.00, 45.00, 8.00, 0.00] class: 2
+|   |--- capital-loss >  1.36
+|   |   |--- capital-loss <= 3.66
+|   |   |   |--- hours-per-week <= 1.00
+|   |   |   |   |--- weights: [0.00, 0.00, 2.00, 2.00, 0.00, 10.00] class: 5
+|   |   |   |--- hours-per-week >  1.00
+|   |   |   |   |--- weights: [1.00, 0.00, 3.00, 0.00, 0.00, 0.00] class: 2
+|   |   |--- capital-loss >  3.66
+|   |   |   |--- weights: [0.00, 0.00, 0.00, 0.00, 0.00, 128.00] class: 5

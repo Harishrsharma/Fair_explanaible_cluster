@@ -276,7 +276,9 @@ def run_dataset(dataset_name, verbose=True):
         # -- Clustering quality -----------------------------------------------
         "silhouette", "silhouette_pca", "davies_bouldin", "sse",
         # -- Fairness ---------------------------------------------------------
-        "min_balance", "avg_balance", "violation_rate",
+        "min_balance", "avg_balance",
+        "min_bera_balance", "avg_bera_balance",
+        "violation_rate",
         # "avg_dp_gap",  # commented out — DP gap not cited for clustering context
         # -- Cost of fairness (Chierichetti 2017; Bera et al. 2019) -----------
         "cost_of_fairness",

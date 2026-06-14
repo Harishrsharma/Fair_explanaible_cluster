@@ -1,0 +1,43 @@
+Decision-Tree Rules — kmeans_baseline on german
+Depth: 4 | Rules (leaves): 14 | Explanation accuracy: 89.6%
+----------------------------------------------------------------------
+|--- numner-people-provide-maintenance-for <= 0.95
+|   |--- existing-credits <= 0.16
+|   |   |--- age <= -0.00
+|   |   |   |--- credit-amount <= 0.50
+|   |   |   |   |--- weights: [4.00, 5.00, 0.00, 0.00, 292.00] class: 4
+|   |   |   |--- credit-amount >  0.50
+|   |   |   |   |--- weights: [39.00, 2.00, 0.00, 0.00, 14.00] class: 0
+|   |   |--- age >  -0.00
+|   |   |   |--- credit-amount <= 0.70
+|   |   |   |   |--- weights: [2.00, 113.00, 0.00, 0.00, 39.00] class: 1
+|   |   |   |--- credit-amount >  0.70
+|   |   |   |   |--- weights: [36.00, 4.00, 0.00, 0.00, 0.00] class: 0
+|   |--- existing-credits >  0.16
+|   |   |--- age <= 1.05
+|   |   |   |--- credit-amount <= 0.77
+|   |   |   |   |--- weights: [1.00, 8.00, 182.00, 0.00, 1.00] class: 2
+|   |   |   |--- credit-amount >  0.77
+|   |   |   |   |--- weights: [37.00, 1.00, 15.00, 0.00, 0.00] class: 0
+|   |   |--- age >  1.05
+|   |   |   |--- existing-credits <= 1.89
+|   |   |   |   |--- weights: [3.00, 36.00, 2.00, 0.00, 0.00] class: 1
+|   |   |   |--- existing-credits >  1.89
+|   |   |   |   |--- weights: [0.00, 2.00, 7.00, 0.00, 0.00] class: 2
+|--- numner-people-provide-maintenance-for >  0.95
+|   |--- credit-amount <= 1.88
+|   |   |--- duration <= 2.75
+|   |   |   |--- duration <= 2.00
+|   |   |   |   |--- weights: [0.00, 0.00, 0.00, 135.00, 0.00] class: 3
+|   |   |   |--- duration >  2.00
+|   |   |   |   |--- weights: [1.00, 0.00, 0.00, 9.00, 0.00] class: 3
+|   |   |--- duration >  2.75
+|   |   |   |--- weights: [1.00, 0.00, 0.00, 0.00, 0.00] class: 0
+|   |--- credit-amount >  1.88
+|   |   |--- credit-history_critical account <= 0.50
+|   |   |   |--- weights: [7.00, 0.00, 0.00, 0.00, 0.00] class: 0
+|   |   |--- credit-history_critical account >  0.50
+|   |   |   |--- other-debtors_none <= 0.50
+|   |   |   |   |--- weights: [1.00, 0.00, 0.00, 0.00, 0.00] class: 0
+|   |   |   |--- other-debtors_none >  0.50
+|   |   |   |   |--- weights: [0.00, 0.00, 0.00, 1.00, 0.00] class: 3

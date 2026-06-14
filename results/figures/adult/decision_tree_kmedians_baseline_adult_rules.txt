@@ -1,0 +1,43 @@
+Decision-Tree Rules — kmedians_baseline on adult
+Depth: 4 | Rules (leaves): 14 | Explanation accuracy: 88.8%
+----------------------------------------------------------------------
+|--- relationship_Not-in-family <= 0.50
+|   |--- marital-status_Never-married <= 0.50
+|   |   |--- educational-num <= -0.24
+|   |   |   |--- relationship_Own-child <= 0.50
+|   |   |   |   |--- weights: [0.00, 34.00, 26.00, 0.00, 1665.00, 29.00] class: 4
+|   |   |   |--- relationship_Own-child >  0.50
+|   |   |   |   |--- weights: [0.00, 0.00, 0.00, 0.00, 18.00, 63.00] class: 5
+|   |   |--- educational-num >  -0.24
+|   |   |   |--- education_Some-college <= 0.50
+|   |   |   |   |--- weights: [0.00, 20.00, 517.00, 824.00, 0.00, 9.00] class: 3
+|   |   |   |--- education_Some-college >  0.50
+|   |   |   |   |--- weights: [767.00, 0.00, 0.00, 0.00, 0.00, 17.00] class: 0
+|   |--- marital-status_Never-married >  0.50
+|   |   |--- relationship_Own-child <= 0.50
+|   |   |   |--- age <= -0.61
+|   |   |   |   |--- weights: [0.00, 23.00, 1.00, 0.00, 0.00, 170.00] class: 5
+|   |   |   |--- age >  -0.61
+|   |   |   |   |--- weights: [0.00, 106.00, 5.00, 0.00, 15.00, 4.00] class: 1
+|   |   |--- relationship_Own-child >  0.50
+|   |   |   |--- weights: [0.00, 0.00, 0.00, 0.00, 0.00, 915.00] class: 5
+|--- relationship_Not-in-family >  0.50
+|   |--- age <= 0.37
+|   |   |--- marital-status_Married-civ-spouse <= 0.50
+|   |   |   |--- education_Bachelors <= 0.50
+|   |   |   |   |--- weights: [0.00, 956.00, 1.00, 0.00, 1.00, 0.00] class: 1
+|   |   |   |--- education_Bachelors >  0.50
+|   |   |   |   |--- weights: [0.00, 277.00, 17.00, 0.00, 0.00, 0.00] class: 1
+|   |   |--- marital-status_Married-civ-spouse >  0.50
+|   |   |   |--- weights: [0.00, 0.00, 0.00, 0.00, 1.00, 0.00] class: 4
+|   |--- age >  0.37
+|   |   |--- education_HS-grad <= 0.50
+|   |   |   |--- education_Bachelors <= 0.50
+|   |   |   |   |--- weights: [0.00, 262.00, 6.00, 1.00, 0.00, 0.00] class: 1
+|   |   |   |--- education_Bachelors >  0.50
+|   |   |   |   |--- weights: [0.00, 53.00, 39.00, 0.00, 0.00, 0.00] class: 1
+|   |   |--- education_HS-grad >  0.50
+|   |   |   |--- marital-status_Never-married <= 0.50
+|   |   |   |   |--- weights: [0.00, 0.00, 0.00, 0.00, 132.00, 0.00] class: 4
+|   |   |   |--- marital-status_Never-married >  0.50
+|   |   |   |   |--- weights: [0.00, 26.00, 0.00, 0.00, 0.00, 0.00] class: 1

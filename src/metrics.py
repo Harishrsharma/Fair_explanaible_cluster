@@ -68,16 +68,13 @@ def clustering_metrics(X, labels):
     n, d = X.shape
 
     # ── Silhouette in original space ─────────────────────────────────────
-    # Subsample when n > 3000: full n×n distance matrix at 7000 pts = 374 MiB,
-    # which OOMs on machines with <500 MB free RAM.  3000-pt sample = 72 MiB.
-    _SIL_MAX = 3000
-    if n > _SIL_MAX:
-        rng = np.random.default_rng(42)
-        idx = rng.choice(n, _SIL_MAX, replace=False)
-        sil_raw = float(silhouette_score(X[idx], labels[idx]))
-    else:
-        idx = None
-        sil_raw = float(silhouette_score(X, labels))
+    # Compute on the FULL X passed in — no second-level subsample.
+    # Dataset size is already controlled upstream by config.SAMPLE_SIZES
+    # (the same X used to fit the clustering is used to score it), so the
+    # silhouette reflects exactly the points the algorithm was evaluated on.
+    # No mismatch with other metrics (davies_bouldin, sse) that also use full X.
+    idx = None
+    sil_raw = float(silhouette_score(X, labels))
 
     # ── Silhouette in PCA-reduced space ───────────────────────────────────
     # Only reduce if the dataset actually has more dimensions than PCA_N_COMPONENTS.

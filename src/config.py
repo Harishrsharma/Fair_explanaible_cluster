@@ -47,10 +47,18 @@ DATASETS = {
 # Reference: Adult=gender/race, COMPAS=race/sex, Bank=age_group, German=sex
 SENSITIVE_CONFIGS = {
     "bank": {
-        "column":      "age",
-        "type":        "threshold",   # age > threshold -> 1 (older group)
-        "threshold":   35,
-        "description": "Age group: older (>35) = 1, younger = 0"
+        # Marital status — matches Bera et al. (2019) bank experiment
+        # married ≈ 60%, single/divorced ≈ 40% in bank-full.csv
+        "column":      "marital",
+        "type":        "binary_map",
+        "map":         {"married": 1},   # all others (single, divorced) -> 0
+        "default":     0,
+        "description": "Marital status: married = 1, single/divorced = 0"
+        # ── Original age-based config (switch back if needed) ──────────────
+        # "column":    "age",
+        # "type":      "threshold",
+        # "threshold": 35,
+        # "description": "Age group: older (>35) = 1, younger = 0"
     },
     "adult": {
         "column":      "gender",
