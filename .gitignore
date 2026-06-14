@@ -8,3 +8,7 @@ myvirtual/
 *.egg-info/
 dist/
 build/
+
+# Claude Code worktrees and local agent state
+.claude/
+
